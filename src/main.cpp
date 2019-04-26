@@ -9,7 +9,7 @@
 #include <locale.h>
 #include <algorithm>
 #include "tetris.hpp"
-
+#include "tetris_server.hpp"
 //FIXME: Bug when moving all to the right side when the piece is starting to falling
 
 int main(int argc, char **argv)
@@ -42,15 +42,15 @@ int main(int argc, char **argv)
                 break;
             }
             case '2':{
-                tetris::client_t cl(name);
-                //join_game();
+                ////join_game();
                 mvprintw(12,3, "Insert IP of the host:"); // (also port if required) (?)
                 echo();
                 mvprintw(15,5, ">> ");
                 echo();
                 getnstr(buffer, BUFSIZ);
                 noecho();
-                cl.connect(buffer);
+                tetris::client_t cl(name);
+                cl.connect(std::string(buffer));
                 cl.play();
                 //join_game();
                 break;
@@ -60,6 +60,10 @@ int main(int argc, char **argv)
                 //fork;
                 // host
                 // connect
+                endwin();
+                tetris::server_t srv(1);
+                srv.run();
+                exit(0);
                 break;
             }
             case '4':{

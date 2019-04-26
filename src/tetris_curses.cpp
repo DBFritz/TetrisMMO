@@ -82,9 +82,9 @@ namespace tetris{
 
     void tetris_t::draw_score(){
         werase(score_w);
-        wprintw(score_w, "Score:%4d\n", score);
-        wprintw(score_w, "Level:%4d\n", level);
-        wprintw(score_w, "Lines:%4d\n", lines_remaining);
+        wprintw(score_w, "Score:%4d", score);
+        wprintw(score_w, "Level:%4d", level);
+        wprintw(score_w, "Lines:%4d", lines_remaining);
         wnoutrefresh(score_w);
     }
 }

@@ -110,6 +110,7 @@ namespace tetris {
 
         bool fits(block_t block, bool exception = false);
         bool gravity_update();
+        void update_lines_remaining(int lines);
         void new_falling();
 
     public:
@@ -121,7 +122,7 @@ namespace tetris {
         game_t(int rows = 20, int cols = 10);
         ~game_t();
 
-        bool update();
+        void update();
         bool is_over();
 
         block_type_t operator()(int row, int col);

@@ -95,16 +95,13 @@ namespace tetris {
         ticks_till_gravity--;
         if (ticks_till_gravity <= 0) {
             falling.loc.y++;
-            if (fits(falling)) {
-                ticks_till_gravity = TICKS_PER_LEVEL[level];
-            } else {
+            ticks_till_gravity = TICKS_PER_LEVEL[level];
+            if (!fits(falling)) {
                 falling.loc.y--;
                 put(falling);
-                remove_fulls();
                 new_falling();
+                return true;
             }
-            ticks_till_gravity = TICKS_PER_LEVEL[level];
-            return true;
         }
         return false;
     }
@@ -226,15 +223,17 @@ namespace tetris {
                 lines++;
             }
         }
-        score += score_calculator(lines);
+        return lines;
+    }
+
+    void game_t::update_lines_remaining(int lines){
         if (lines < lines_remaining) {
             lines_remaining -= lines;
         } else {
             level++;
             if (level>MAX_LEVEL) level=MAX_LEVEL;
-            lines_remaining = LINES_PER_LEVEL + lines_remaining - lines;
+            lines_remaining += LINES_PER_LEVEL - lines;
         }
-        return lines;
     }
 
     bool game_t::is_over(){
@@ -256,10 +255,11 @@ namespace tetris {
         }
     }
 
-    bool game_t::update(){
+    void game_t::update(){
         if (gravity_update()){
-            return  !is_over();
-        }
-        return true;
+            int lines = remove_fulls();
+            score += score_calculator(lines);
+            update_lines_remaining(lines);
+        };
     }
 }
