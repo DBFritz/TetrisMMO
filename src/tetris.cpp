@@ -58,7 +58,7 @@ namespace tetris{
         serv_addr.sin_port = htons(PORT);
         if (::connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
             throw "CONNECTION ERROR";
-        std::cerr << "Executing thread" << std::endl;
+        //std::cerr << "Executing thread" << std::endl;
         socket_handler = std::thread(&client_t::handle_socket, this);
         socket_handler.detach();
         return true;
@@ -102,13 +102,13 @@ namespace tetris{
             char buffer[BUFSIZ];
             std::string command;
             buffer[recv(sockfd, buffer, BUFSIZ, 0)] = 0;
-            std::cerr << "New message!" << std::endl;
+            //std::cerr << "New message!" << std::endl;
             streamrcv.clear();
             //streamrcv.str()[recv(sockfd, const_cast<char *>(streamrcv.str().c_str()), 8168, 0)] = 0; // DOESN'T WORK
             streamrcv.str(std::string(buffer));
             
             while (streamrcv >> command){
-                std::cerr << "Recieved: " << streamrcv.str() << std::endl;
+                //std::cerr << "Recieved: " << streamrcv.str() << std::endl;
                 if (command == "BOARD") {
                     if (streamrcv >> command){
                         for(unsigned i=0; i < command.length(); i++)

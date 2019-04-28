@@ -20,6 +20,7 @@ namespace tetris{
         keypad(stdscr, TRUE);
         timeout(0);  // don't wait for getch()
         curs_set(0); // invisible cursor
+        clear();
         
         start_color();
         init_pair(block_type_t::I, COLOR_BLACK, COLOR_CYAN);
