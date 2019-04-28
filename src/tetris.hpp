@@ -2,6 +2,8 @@
 #define _TETRIS_
 
 #include "tetris_curses.hpp"
+#include <sstream>
+#include <string>
 
 namespace tetris{
     class singleplayer_t: tetris_t{
@@ -15,6 +17,16 @@ namespace tetris{
       private:
         tetris::keys_t<tetris::client_t> keys;
         int sockfd;
+        std::stringstream stream;
+        std::stringstream streamrcv;
+        std::string attacked;
+
+        std::thread socket_handler;
+
+        void send(std::string command, int value);
+        void send(std::string command);
+        void handle_socket();
+
       public:
         client_t(std::string name = "Unnamed");
         ~client_t();
@@ -24,10 +36,11 @@ namespace tetris{
         bool connect(std::string server = "127.0.0.1");
 
         // Overloading
-        void move(int direction);
-        //void rotate(int direction);
-        //void hold();
-        //void drop();
+        void move(int direction){ send("MOVE", direction); }
+        void rotate(int direction){ send("ROTATE", direction); }
+        void hold() { send("HOLD"); }
+        void drop() { send("DROP"); }
+        void change_attacked(){ send("ATTACK"); }
     };
 }
 

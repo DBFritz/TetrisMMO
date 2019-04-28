@@ -50,8 +50,13 @@ int main(int argc, char **argv)
                 getnstr(buffer, BUFSIZ);
                 noecho();
                 tetris::client_t cl(name);
-                cl.connect(std::string(buffer));
-                cl.play();
+                //endwin();
+                try {
+                    cl.connect(std::string(buffer));
+                    cl.play();
+                } catch (char const* err){
+                    std::cerr << err << std::endl;
+                }
                 //join_game();
                 break;
             }
@@ -60,8 +65,8 @@ int main(int argc, char **argv)
                 //fork;
                 // host
                 // connect
-                endwin();
                 tetris::server_t srv(1);
+                endwin();
                 srv.run();
                 exit(0);
                 break;

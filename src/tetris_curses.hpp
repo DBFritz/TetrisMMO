@@ -77,6 +77,7 @@ namespace tetris{
     public:
 
         void draw_board();
+        void draw_falling();
         void draw_hold(std::string text = "") { draw_block(stored_w,getStored(), text); }
         void draw_next(std::string text = "") { draw_block(next_w,getNext(), text); }
         void draw_score();

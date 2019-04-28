@@ -77,7 +77,7 @@ namespace tetris {
     const int TICKS_PER_LEVEL[MAX_LEVEL+1] = {
         53, 49, 45, 41, 37, 33, 28, 22, 17, 11, 10, 9, 8, 7, 6, 6, 5, 5, 4, 4, 3
     };
-
+    
     class game_t{
     protected:
         static int score_calculator(int l){
@@ -122,7 +122,7 @@ namespace tetris {
         game_t(int rows = 20, int cols = 10);
         ~game_t();
 
-        void update();
+        int update();
         bool is_over();
 
         block_type_t operator()(int row, int col);
@@ -147,6 +147,7 @@ namespace tetris {
         void drop();
         void hold();
         void add_trash(int lines = 1);
+        void accelerate(int speed = 1);
     };
 }
 #endif

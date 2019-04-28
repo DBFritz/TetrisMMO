@@ -41,6 +41,7 @@ namespace tetris{
         erase();
         endwin();
 
+        //FIXME: Delete this,
         std::cout << "Game over!" << std::endl;
         std::cout << "You have reach level " << getLevel() << ", your score was " << getScore() << std::endl;
     }
@@ -71,6 +72,10 @@ namespace tetris{
         for (i = 0; i < rows(); i++)
             for (j = 0; j < cols(); j++)
                 paint_block(board_w, 1 + i * ROWS_PER_CELL, 1 + j * COLS_PER_CELL, operator()(i,j));
+        wnoutrefresh(board_w);
+    }
+
+    void tetris_t::draw_falling(){
         block_t block = getFalling();
         for (int b = 0; b < TETRIS; b++) {
             location_t c = block.tetromino()[b];

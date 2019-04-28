@@ -1,7 +1,7 @@
 CC=g++
 FLAGS=-Wall -pedantic
 CFLAGS=$(FLAGS) -c -g -std=c++17 -Isrc/ -I/usr/include/ncursesw 
-LFLAGS=$(FLAGS) -lncursesw -ltinfo
+LFLAGS=$(FLAGS) -lncursesw -ltinfo -pthread
 MK_DIR=@mkdir -p
 SOURCES=$(shell find src/ -type f -name "*.cpp")
 

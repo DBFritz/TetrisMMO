@@ -1,8 +1,14 @@
+#include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <cstring>
+#include <string>
+#include <sstream>
 #include <arpa/inet.h>
+#include <thread>
+#include <chrono>
+#include <unordered_map>
 #include "tetris_server.hpp"
 
 namespace tetris{
@@ -10,11 +16,29 @@ namespace tetris{
         players = new game_t[N];
         clients_socket = new int[N];
         bzero(clients_socket,N*sizeof(int));
+        /// Setting up the default commands.
+        set_command("MOVE", &game_t::move);
+        set_command("ROTATE", &game_t::rotate);
+        set_command("HOLD",&game_t::hold);
+        set_command("DROP",&game_t::drop);
+        set_command("ACCELERATE",&game_t::accelerate);
     }
 
     server_t::~server_t(){
         delete players;
         delete clients_socket;
+    }
+
+    void server_t::set_command(std::string command, void (game_t::*fun)(int)){
+        //server_t::command_t new_command;
+        //new_command.is_with_argument = true;
+        //new_command.fun.with_argument = fun;
+        commands[command].is_with_argument = true;
+        commands[command].fun.with_argument = fun;
+    }
+    void server_t::set_command(std::string command, void (game_t::*fun)()){
+        commands[command].is_with_argument = false;
+        commands[command].fun.wo_argument = fun;
     }
 
     void server_t::run(int port){
@@ -37,24 +61,24 @@ namespace tetris{
         if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)   
             throw "ERROR binding";
 
-        printf("Listener on port %d \n", port);   
+        std::cerr << "Listening on port" << port << std::endl;   
 
         // FIXME: why 3?
         if (listen(master_socket, 3) < 0)   
             throw "ERROR listening"; 
 
         addrlen = sizeof(address);   
-        puts("Waiting for connections ...");   
+        std::cerr << "Waiting for connections ..." << std::endl;   
     
         // Wait for all clients
         for(int new_socket, i=0; i<max_players;i++){
             if ((new_socket = accept(master_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
                     throw "ERROR accepting";
 
-            printf("New connection , socket fd is %d , ip is : %s , port : %d\n", 
-                new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));   
-            printf("Sending HI\n");
-            strcpy(buffer,"HI");
+            std::cerr << "Player " << i << " conected, ip: " << inet_ntoa(address.sin_addr) << ':' << ntohs(address.sin_port) << std::endl; 
+            
+            std::cerr << "Sending HI\n" << std::endl;
+            strcpy(buffer,"HI\n");
             if( send(new_socket, buffer, strlen(buffer), 0) != strlen(buffer) )
                 throw "ERROR sending HI";
             clients_socket[i] = new_socket;
@@ -62,10 +86,15 @@ namespace tetris{
 
         // Say to all clients that we're ready
         printf("Sending PLAY\n");
-        strcpy(buffer,"PLAY");
+        strcpy(buffer,"PLAY\n");
         for(int i=0;i<max_players;i++)
             if (send(clients_socket[i], buffer, strlen(buffer), 0) != strlen(buffer))
                 throw "ERROR sending PLAY";
+        
+        for(int i=0;i<max_players;i++){
+            std::thread t(&server_t::play, this, i);
+            t.detach();
+        }
 
         fd_set fds;
         FD_ZERO(&fds);
@@ -78,31 +107,81 @@ namespace tetris{
             }
             
             if ((select( max_sd + 1 , &fds , NULL , NULL , NULL) < 0) && (errno!=EINTR))
-                printf("select error");
+                std::cerr << "select error" << std::endl;
 
             for (int i = 0, sd; i < max_players; i++){
                 sd = clients_socket[i];
                 if (sd==0) continue;
                 if (FD_ISSET( sd , &fds)) {
-                    int valread = recv(sd, buffer, BUFSIZ, 0);
-                    if ( valread == 0 ) {    // Somebody disconnected
-                        getpeername(sd , (struct sockaddr*)&address , (socklen_t*)&addrlen);   
-                        printf("Host disconnected , ip %s , port %d \n" ,  
-                              inet_ntoa(address.sin_addr) , ntohs(address.sin_port));   
-
-                        //Close the socket and mark as 0 in list for reuse
-                        FD_CLR(sd, &fds);
-                        shutdown(sd,2);
-                        clients_socket[i] = 0;
-                    } else {                // echo back
-                        buffer[valread] = '\0';
-                        printf("Message from player %i: %s\n" , i, buffer);   
-
-                        // Send board or whatever
-                        FD_CLR(sd, &fds);
-                    }
+                    buffer[recv(sd, buffer, BUFSIZ, 0)] = 0;
+                    handle_message(i, std::string(buffer));
+                    FD_CLR(sd, &fds);
                 }
             }
+        }
+    }
+    void server_t::sendboard(int player){
+        static int rows= players[player].rows(), cols=players[player].cols();
+        std::stringstream sendstream;
+        sendstream << "BOARD ";
+        for (int row=0; row< rows; row++)
+            for (int col=0; col< cols; col++)
+                sendstream << players[player](row, col);
+        sendstream << std::endl;
+        sendstream << "FALLING ";
+        sendstream << players[player].getFalling().typ << ' ';
+        sendstream << players[player].getFalling().ori << ' ';
+        sendstream << players[player].getFalling().loc.first << ' ';
+        sendstream << players[player].getFalling().loc.second << std::endl;
+        send(clients_socket[player], sendstream.str().c_str(), sendstream.str().length(), 0);
+    }
+
+    void server_t::play(int player){
+        char buffer[BUFSIZ];
+        std::stringstream sendstream;
+        while (clients_socket[player] != 0) {
+            sendstream.clear();
+            sendstream.str("");
+            int lines = players[player].update();
+            if (lines >= 0)
+                sendboard(player);
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        }
+    }
+
+    void server_t::handle_message(int player, std::string buffer){
+        if ( buffer.length() == 0 ) {    // Somebody disconnected 
+            std::cout << "Player " << player << " disconnected" << std::endl;
+            shutdown(clients_socket[player],2);
+            clients_socket[player] = 0;
+            return;
+        }
+        static std::stringstream recvstream;
+        int value; // just in case
+        recvstream.clear();
+        std::cout << "Message from player " << player << ": " << buffer << std::endl;
+        recvstream.str(buffer);
+        while (recvstream >> buffer){
+            if (commands.find(buffer) != commands.end()){
+                if (commands[buffer].is_with_argument){
+                    recvstream >> value;
+                    (players[player].*(commands[buffer].fun.with_argument))(value);
+                } else {
+                    (players[player].*(commands[buffer].fun.wo_argument))();
+                }
+            }
+            //if (buffer == "MOVE"){
+            //    int direction;
+            //    recvstream >> direction;
+            //    players[player].move(direction);
+            //} else if (buffer == "DROP"){
+            //    players[player].drop();
+            //} else if (buffer == "ROTATE"){
+            //    int direction;
+            //    recvstream >> direction;
+            //    players[player].rotate(direction);
+            //}
+            sendboard(player);
         }
     }
 }   

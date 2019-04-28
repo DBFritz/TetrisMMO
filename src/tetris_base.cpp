@@ -96,14 +96,9 @@ namespace tetris {
         if (ticks_till_gravity <= 0) {
             falling.loc.y++;
             ticks_till_gravity = TICKS_PER_LEVEL[level];
-            if (!fits(falling)) {
-                falling.loc.y--;
-                put(falling);
-                new_falling();
-                return true;
-            }
+            return -1;
         }
-        return false;
+        return 0;
     }
 
     //FIXME: BUG CUANDO EMPIEZA LA PIEZA Y LA MUEVO MUCHO PARA EL COSTADO
@@ -254,12 +249,24 @@ namespace tetris {
                 set(i, j, (j!=col ?TRASH:EMPTY));
         }
     }
+    
+    void game_t::accelerate(int speed){
+        ticks_till_gravity -= speed;
+    }
 
-    void game_t::update(){
+    int game_t::update(){
         if (gravity_update()){
-            int lines = remove_fulls();
-            score += score_calculator(lines);
-            update_lines_remaining(lines);
+            if (!fits(falling)) {
+                falling.loc.y--;
+                put(falling);
+                int lines = remove_fulls();
+                score += score_calculator(lines);
+                update_lines_remaining(lines);
+                new_falling();
+                return lines;
+            }
+            return 0;
         };
+        return -1;
     }
 }
