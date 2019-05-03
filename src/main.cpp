@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
-#include <ncursesw/curses.h>
+//#include <ncursesw/curses.h>
+#include <curses.h>
 #include <string.h>
 #include <chrono>
 #include <thread>

@@ -79,7 +79,7 @@ namespace tetris{
             
             std::cerr << "Sending HI\n" << std::endl;
             strcpy(buffer,"HI\n");
-            if( send(new_socket, buffer, strlen(buffer), 0) != strlen(buffer) )
+            if( send(new_socket, buffer, strlen(buffer), 0) != static_cast<ssize_t>(strlen(buffer)) )
                 throw "ERROR sending HI";
             clients_socket[i] = new_socket;
         }
@@ -88,7 +88,7 @@ namespace tetris{
         printf("Sending PLAY\n");
         strcpy(buffer,"PLAY\n");
         for(int i=0;i<max_players;i++)
-            if (send(clients_socket[i], buffer, strlen(buffer), 0) != strlen(buffer))
+            if (send(clients_socket[i], buffer, strlen(buffer), 0) != static_cast<ssize_t>(strlen(buffer)))
                 throw "ERROR sending PLAY";
         
         for(int i=0;i<max_players;i++){
@@ -137,7 +137,6 @@ namespace tetris{
     }
 
     void server_t::play(int player){
-        char buffer[BUFSIZ];
         std::stringstream sendstream;
         while (clients_socket[player] != 0) {
             sendstream.clear();

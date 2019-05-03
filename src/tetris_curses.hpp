@@ -3,7 +3,8 @@
 
 #include <iostream>
 #include <stdlib.h>
-#include <ncursesw/curses.h>
+//#include <ncursesw/curses.h>
+#include <curses.h>
 #include <chrono>
 #include <cstring>
 #include <thread>
@@ -11,11 +12,27 @@
 #include <algorithm>
 #include "tetris_base.hpp"
 
+#define NORMAL_BLOCK {' ', ' ', 0}
 namespace tetris{
-    const std::wstring BLOCK_STR[NUM_TETROMINOS+2] = {
-        L"  ", L"  ", L"  ", L"  ", L"  ", L"  ", L"  ", L"  ", L"▓▓"
-        //L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"▓▓\n▓▓"
-    };
+    const int COLS_PER_CELL{2};
+    const int ROWS_PER_CELL{1};
+    /*
+    const chtype BLOCK_STR[NUM_TETROMINOS+2][(COLS_PER_CELL+1)*ROWS_PER_CELL] = {
+        {' ', ' '},                  // EMPTY
+        {' ', ' '},                   // I
+        {' ', ' '},                   // J
+        {' ', ' '},                   // L
+        {' ', ' '},                   // O
+        {' ', ' '},                   // S
+        {' ', ' '},                   // T
+        {' ', ' '},                   // Z
+        {ACS_CKBOARD, ACS_CKBOARD},  // TRASH
+    };          /// FIXME: DOESN'T WORK HERE: MOVED TO .CPP
+    */  
+    //const std::string BLOCK_STR[NUM_TETROMINOS+2] = {
+    //    "  ", "  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "
+    //    //L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"▓▓\n▓▓"
+    //};
 
     //const std::vector<std::vector<int>> colours({
     //    {   0,   0,   0},
@@ -28,9 +45,6 @@ namespace tetris{
     //    {1000,   0,   0},
     //    {1000,1000,1000}
     //});
-
-    const int COLS_PER_CELL{static_cast<int>(BLOCK_STR[0].substr(0,BLOCK_STR[0].find('\n')).length())};
-    const int ROWS_PER_CELL{static_cast<int>(std::count(BLOCK_STR[0].begin(), BLOCK_STR[0].end(), '\n')+1)};
 
     class window_t{
         WINDOW * self;

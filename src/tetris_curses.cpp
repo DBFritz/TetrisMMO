@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
-#include <ncursesw/curses.h>
+//#include <ncursesw/curses.h>
+#include <curses.h>
 #include <chrono>
 #include <thread>
 #include <locale.h>
@@ -23,6 +24,8 @@ namespace tetris{
         clear();
         
         start_color();
+        //init_color(8, 1000, 700, 30);
+        //init_color(3, 1000, 700, 30);
         init_pair(block_type_t::I, COLOR_BLACK, COLOR_CYAN);
         init_pair(block_type_t::J, COLOR_BLACK, COLOR_BLUE);
         init_pair(block_type_t::L, COLOR_BLACK, COLOR_WHITE);
@@ -30,6 +33,7 @@ namespace tetris{
         init_pair(block_type_t::S, COLOR_BLACK, COLOR_GREEN);
         init_pair(block_type_t::T, COLOR_BLACK, COLOR_MAGENTA);
         init_pair(block_type_t::Z, COLOR_BLACK, COLOR_RED);
+        //init_pair(8, COLOR_BLACK, 8);
         init_pair(block_type_t::TRASH, COLOR_BLACK, COLOR_WHITE);
 
         stored_w= newwin(ROWS_PER_CELL * TETRIS + 2, COLS_PER_CELL * TETRIS + 2, 0, 0);
@@ -48,9 +52,18 @@ namespace tetris{
     }
 
     void paint_block(WINDOW *w, int y, int x, block_type_t type){
-        wattron(w, COLOR_PAIR(type));
-        mvwaddwstr(w, y, x, BLOCK_STR[type].c_str());
-        wattroff(w, COLOR_PAIR(type));
+        static const chtype BLOCK_STR[NUM_TETROMINOS+2][(COLS_PER_CELL+1)*ROWS_PER_CELL] = {
+            {' ',               ' ',               0},  // EMPTY
+            {' '|COLOR_PAIR(I), ' '|COLOR_PAIR(I), 0},  // I
+            {' '|COLOR_PAIR(J), ' '|COLOR_PAIR(J), 0},  // J
+            {' '|COLOR_PAIR(L), ' '|COLOR_PAIR(L), 0},  // L
+            {' '|COLOR_PAIR(O), ' '|COLOR_PAIR(O), 0},  // O
+            {' '|COLOR_PAIR(S), ' '|COLOR_PAIR(S), 0},  // S
+            {' '|COLOR_PAIR(T), ' '|COLOR_PAIR(T), 0},  // T
+            {' '|COLOR_PAIR(9), ' '|COLOR_PAIR(9), 0},  // Z
+            {ACS_CKBOARD,       ACS_CKBOARD,       0},  // TRASH
+        };  
+        mvwaddchstr(w, y, x, BLOCK_STR[(int)type]);
     }
 
     void tetris_t::draw_block(WINDOW * w, block_t block, std::string text){
@@ -66,12 +79,12 @@ namespace tetris{
         wnoutrefresh(w);
     }
     void tetris_t::draw_board(){
-        int i, j;
+        werase(board_w);
         box(board_w, 0, 0);
         wmove(board_w, 0, (getmaxx(board_w)-name.length())/2);
         wprintw(board_w, name.c_str());
-        for (i = 0; i < rows(); i++)
-            for (j = 0; j < cols(); j++)
+        for (int i = 0; i < rows(); i++)
+            for (int j = 0; j < cols(); j++)
                 paint_block(board_w, 1 + i * ROWS_PER_CELL, 1 + j * COLS_PER_CELL, operator()(i,j));
         wnoutrefresh(board_w);
     }
