@@ -129,10 +129,11 @@ namespace tetris{
                 sendstream << players[player](row, col);
         sendstream << std::endl;
         sendstream << "FALLING ";
-        sendstream << players[player].getFalling().typ << ' ';
-        sendstream << players[player].getFalling().ori << ' ';
-        sendstream << players[player].getFalling().loc.first << ' ';
-        sendstream << players[player].getFalling().loc.second << std::endl;
+        sendstream << players[player].getFalling() << std::endl;
+        sendstream << "NEXT ";
+        sendstream << players[player].getNext() << std::endl;
+        sendstream << "STORED ";
+        sendstream << players[player].getStored() << std::endl;
         send(clients_socket[player], sendstream.str().c_str(), sendstream.str().length(), 0);
     }
 
@@ -183,4 +184,9 @@ namespace tetris{
             sendboard(player);
         }
     }
-}   
+}
+
+std::ostream & operator << (std::ostream &out, const tetris::block_t &b){
+    out << b.typ << ' ' << b.ori << ' ' << b.loc.first << ' ' << b.loc.second;
+    return out;
+}

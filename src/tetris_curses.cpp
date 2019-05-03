@@ -60,7 +60,7 @@ namespace tetris{
             {' '|COLOR_PAIR(O), ' '|COLOR_PAIR(O), 0},  // O
             {' '|COLOR_PAIR(S), ' '|COLOR_PAIR(S), 0},  // S
             {' '|COLOR_PAIR(T), ' '|COLOR_PAIR(T), 0},  // T
-            {' '|COLOR_PAIR(9), ' '|COLOR_PAIR(9), 0},  // Z
+            {' '|COLOR_PAIR(Z), ' '|COLOR_PAIR(Z), 0},  // Z
             {ACS_CKBOARD,       ACS_CKBOARD,       0},  // TRASH
         };  
         mvwaddchstr(w, y, x, BLOCK_STR[(int)type]);

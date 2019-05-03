@@ -118,19 +118,26 @@ namespace tetris{
                         std::cerr << "EXPECTED BOARD";
                     }
                 } else if (command == "FALLING") {
-                    int read;
-                    streamrcv >> read;
-                    falling.typ = static_cast<block_type_t>(read);
-                    streamrcv >> read;
-                    falling.ori = read;
-                    streamrcv >> read;
-                    falling.loc.first = read;
-                    streamrcv >> read;
-                    falling.loc.second = read;
+                    streamrcv >> falling;
                     draw_falling();
+                    doupdate();
+                } else if (command == "NEXT") {
+                    streamrcv >> next;
+                    draw_next();
+                    doupdate();
+                } else if (command == "STORED") {
+                    streamrcv >> stored;
+                    draw_hold();
                     doupdate();
                 }
             }
         }
     }
+}
+
+std::istream & operator >> (std::istream &in, tetris::block_t &b){
+    in >> b.ori;
+    b.typ = static_cast<tetris::block_type_t>(b.ori);
+    in >> b.ori >> b.loc.first >> b.loc.second;
+    return in;
 }

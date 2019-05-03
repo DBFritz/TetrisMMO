@@ -44,5 +44,6 @@ namespace tetris{
     };
 }
 
+std::istream & operator >> (std::istream &in, tetris::block_t &b);
 
 #endif

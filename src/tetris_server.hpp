@@ -39,4 +39,6 @@ namespace tetris{
     };
 }
 
+std::ostream & operator << (std::ostream &out, const tetris::block_t &b);
+
 #endif

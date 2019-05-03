@@ -92,8 +92,8 @@ namespace tetris{
 
         void draw_board();
         void draw_falling();
-        void draw_hold(std::string text = "") { draw_block(stored_w,getStored(), text); }
-        void draw_next(std::string text = "") { draw_block(next_w,getNext(), text); }
+        void draw_hold(std::string text = "Stored") { draw_block(stored_w,getStored(), text); }
+        void draw_next(std::string text = "Next") { draw_block(next_w,getNext(), text); }
         void draw_score();
 
         tetris_t(std::string name = "Unnamed", int rows = 20, int cols = 10);

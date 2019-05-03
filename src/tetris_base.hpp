@@ -2,6 +2,8 @@
 #define _TETRIS_BASE_
 
 //#include <string>
+#include <utility>
+#include <iostream>
 #include <random>
 
 namespace tetris {
@@ -71,6 +73,7 @@ namespace tetris {
 
         int itype(){ return static_cast<int>(typ)-1; }
         const location_t *tetromino(){ return TETROMINOS[itype()][ori]; }
+        //friend std::ostream & operator<<(std::ostream &out, const tetris::block_t &b);
     };
 
     // from: https://tetris.fandom.com/wiki/Tetris_(Game_Boy)
@@ -129,9 +132,9 @@ namespace tetris {
         int getScore(){ return score; }
         int getLinesRemaining(){ return lines_remaining; }
         int getLevel(){ return level; }
-        block_t getNext(){ return next; }
-        block_t getFalling(){ return falling; }
-        block_t getStored(){ return stored; }
+        const block_t &getNext(){ return next; }
+        const block_t &getFalling(){ return falling; }
+        const block_t &getStored(){ return stored; }
 
         bool bounded(int row, int col){ return 0<=row && row<n_rows && 0<=col && col <n_cols; }
         bool bounded(int row, int col, bool exception);
@@ -150,4 +153,5 @@ namespace tetris {
         void accelerate(int speed = 1);
     };
 }
+
 #endif
