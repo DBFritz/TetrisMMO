@@ -15,6 +15,10 @@ namespace tetris{
     server_t::server_t(int N): max_players(N){
         players = new game_t[N];
         clients_socket = new int[N];
+        attacked = new int[N];
+        for (int i=0; i<N;i++)
+            attacked[i] = i+1;
+        attacked[N-1] = 0;
         bzero(clients_socket,N*sizeof(int));
         /// Setting up the default commands.
         set_command("MOVE", &game_t::move);
@@ -134,6 +138,11 @@ namespace tetris{
         sendstream << players[player].getNext() << std::endl;
         sendstream << "STORED ";
         sendstream << players[player].getStored() << std::endl;
+        sendstream << "ATTACKED ";
+        for (int row=0; row< rows; row++)
+            for (int col=0; col< cols; col++)
+                sendstream << players[attacked[player]](row, col);
+        sendstream << std::endl;
         send(clients_socket[player], sendstream.str().c_str(), sendstream.str().length(), 0);
     }
 

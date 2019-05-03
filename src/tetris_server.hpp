@@ -8,6 +8,7 @@ namespace tetris{
       private:
         int max_players;
         game_t *players;
+        int *attacked;
         int *clients_socket;
 
         void sendboard(int player);

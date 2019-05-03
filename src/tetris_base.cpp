@@ -7,7 +7,7 @@ namespace tetris {
     game_t::game_t(int rows, int cols): 
         n_rows(rows), n_cols(cols)
     {
-        board = (block_type_t *)malloc(sizeof(block_type_t)*n_rows*n_cols);
+        board = new block_type_t[n_rows*n_cols];
         std::memset(board, block_type_t::EMPTY, sizeof(block_type_t) * rows * cols);
         ticks_till_gravity = TICKS_PER_LEVEL[level];
         lines_remaining = LINES_PER_LEVEL;
@@ -17,7 +17,7 @@ namespace tetris {
     }
     
     game_t::~game_t(){
-        free(board);
+        delete board;
     }
     
     bool game_t::bounded(int row, int col, bool exception)

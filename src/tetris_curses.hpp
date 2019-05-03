@@ -82,9 +82,9 @@ namespace tetris{
     class layout_t{
 
     };
-
+    void paint_block(WINDOW *w, int y, int x, block_type_t type);
     class tetris_t : public game_t{
-    private:
+    protected:
         std::string name;
         WINDOW *board_w, *stored_w, *next_w, *score_w;
         void draw_block(WINDOW *w, block_t block, std::string text = "");

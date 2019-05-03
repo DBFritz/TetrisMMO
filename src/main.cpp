@@ -66,7 +66,7 @@ int main(int argc, char **argv)
                 //fork;
                 // host
                 // connect
-                tetris::server_t srv(1);
+                tetris::server_t srv(2);
                 endwin();
                 srv.run();
                 exit(0);

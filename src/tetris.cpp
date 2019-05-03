@@ -1,5 +1,6 @@
 #include <string>
 #include <sys/socket.h>
+#include <ncurses.h>
 //#include <netinet/in.h>
 #include <netdb.h>
 #include <sstream>
@@ -42,9 +43,12 @@ namespace tetris{
         keys.set('c',       &tetris::client_t::change_attacked);
         //keys.set('s',       &tetris::client_t::add_trash, 1);
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        enemy_w = newwin(ROWS_PER_CELL * n_rows + 2, COLS_PER_CELL * n_cols + 2, 0,  getmaxx(stored_w) + getmaxx(board_w) + getmaxx(next_w));
+        enemy_board = new block_type_t[n_rows*n_cols];
     }
     client_t::~client_t(){
         shutdown(sockfd, 2);
+        delete enemy_board;
     }
 
     bool client_t::connect(std::string _server){
@@ -95,6 +99,17 @@ namespace tetris{
             keys(*this, getch());
         }
     }
+    
+    void client_t::draw_enemy_board(std::string name){
+        werase(enemy_w);
+        box(enemy_w, 0, 0);
+        wmove(enemy_w, 0, (getmaxx(enemy_w)-name.length())/2);
+        wprintw(enemy_w, name.c_str());
+        for (int i = 0; i < rows(); i++)
+            for (int j = 0; j < cols(); j++)
+                paint_block(enemy_w, 1 + i * ROWS_PER_CELL, 1 + j * COLS_PER_CELL, enemy_board[n_cols * i + j]);
+        wnoutrefresh(enemy_w);
+    }
 
     void client_t::handle_socket(){
         std::stringstream data;
@@ -128,6 +143,12 @@ namespace tetris{
                 } else if (command == "STORED") {
                     streamrcv >> stored;
                     draw_hold();
+                    doupdate();
+                } else if (command == "ATTACKED") {
+                    streamrcv >> command;
+                    for(unsigned i=0; i < command.length(); i++)
+                        enemy_board[i] = static_cast<block_type_t>(command[i]-'0');
+                    draw_enemy_board();
                     doupdate();
                 }
             }
