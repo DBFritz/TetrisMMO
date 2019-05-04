@@ -125,7 +125,7 @@ namespace tetris {
         game_t(int rows = 20, int cols = 10);
         ~game_t();
 
-        int update();
+        int update(bool force = false);
         bool is_over();
 
         block_type_t operator()(int row, int col);

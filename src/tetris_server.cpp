@@ -12,7 +12,7 @@
 #include "tetris_server.hpp"
 
 namespace tetris{
-    server_t::server_t(int N): max_players(N){
+    server_t::server_t(int N, bool _verbose): verbose(_verbose), max_players(N){
         players = new game_t[N];
         clients_socket = new int[N];
         attacked = new int[N];
@@ -65,23 +65,25 @@ namespace tetris{
         if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)   
             throw "ERROR binding";
 
-        std::cerr << "Listening on port" << port << std::endl;   
+        if (verbose)
+            std::cerr << "Listening on port" << port << std::endl;   
 
         // FIXME: why 3?
         if (listen(master_socket, 3) < 0)   
             throw "ERROR listening"; 
 
-        addrlen = sizeof(address);   
-        std::cerr << "Waiting for connections ..." << std::endl;   
+        addrlen = sizeof(address);
+        if (verbose)
+            std::cerr << "Waiting for connections ..." << std::endl;   
     
         // Wait for all clients
         for(int new_socket, i=0; i<max_players;i++){
             if ((new_socket = accept(master_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
                     throw "ERROR accepting";
-
-            std::cerr << "Player " << i << " conected, ip: " << inet_ntoa(address.sin_addr) << ':' << ntohs(address.sin_port) << std::endl; 
-            
-            std::cerr << "Sending HI\n" << std::endl;
+            if (verbose)
+                std::cerr << "Player " << i << " conected, ip: " << inet_ntoa(address.sin_addr) << ':' << ntohs(address.sin_port) << std::endl; 
+            if (verbose)
+                std::cerr << "Sending HI\n" << std::endl;
             strcpy(buffer,"HI\n");
             if( send(new_socket, buffer, strlen(buffer), 0) != static_cast<ssize_t>(strlen(buffer)) )
                 throw "ERROR sending HI";
@@ -154,13 +156,20 @@ namespace tetris{
             int lines = players[player].update();
             if (lines >= 0)
                 sendboard(player);
+            if (lines > 0)
+                players[attacked[player]].add_trash(lines-1);
+            //if (players[player].is_over()) {
+            //    shutdown(clients_socket[player],2);
+            //    clients_socket[player] = 0;
+            //}
             std::this_thread::sleep_for(std::chrono::milliseconds(16));
         }
     }
 
     void server_t::handle_message(int player, std::string buffer){
-        if ( buffer.length() == 0 ) {    // Somebody disconnected 
-            std::cout << "Player " << player << " disconnected" << std::endl;
+        if ( buffer.length() == 0 ) {    // Somebody disconnected
+            if (verbose)
+                std::cout << "Player " << player << " disconnected" << std::endl;
             shutdown(clients_socket[player],2);
             clients_socket[player] = 0;
             return;
@@ -168,7 +177,8 @@ namespace tetris{
         static std::stringstream recvstream;
         int value; // just in case
         recvstream.clear();
-        std::cout << "Message from player " << player << ": " << buffer << std::endl;
+        if (verbose)
+            std::cout << "Message from player " << player << ": " << buffer << std::endl;
         recvstream.str(buffer);
         while (recvstream >> buffer){
             if (commands.find(buffer) != commands.end()){

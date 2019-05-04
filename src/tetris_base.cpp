@@ -154,9 +154,7 @@ namespace tetris {
         while (fits(falling))
             falling.loc.y++;
         falling.loc.y--;
-        put(falling);
-        remove_fulls();
-        new_falling();
+        ticks_till_gravity = -1;
     }
 
     void game_t::hold()
@@ -254,8 +252,8 @@ namespace tetris {
         ticks_till_gravity -= speed;
     }
 
-    int game_t::update(){
-        if (gravity_update()){
+    int game_t::update(bool force){
+        if (gravity_update() || force){
             if (!fits(falling)) {
                 falling.loc.y--;
                 put(falling);

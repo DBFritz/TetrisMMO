@@ -15,7 +15,7 @@ namespace tetris{
     };
     //TODO: Complete!
     class client_t: public tetris_t{
-      private:
+      protected:
         tetris::keys_t<client_t> keys;
         int sockfd;
         std::stringstream stream;

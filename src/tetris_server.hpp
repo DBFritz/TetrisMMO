@@ -6,9 +6,12 @@
 namespace tetris{
     class server_t{
       private:
+        bool verbose;
+
         int max_players;
         game_t *players;
         int *attacked;
+        std::string *names;
         int *clients_socket;
 
         void sendboard(int player);
@@ -22,7 +25,7 @@ namespace tetris{
         std::unordered_map<std::string, command_t> commands;
 
       public:
-        server_t(int N=2);
+        server_t(int N=2, bool verbose = false);
         ~server_t();
 
         bool is_playing(int i) {return clients_socket[i]!=0;}

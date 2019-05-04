@@ -11,12 +11,12 @@
 #include <algorithm>
 #include "tetris.hpp"
 #include "tetris_server.hpp"
+#include <unistd.h>
 //FIXME: Bug when moving all to the right side when the piece is starting to falling
 
 int main(int argc, char **argv)
 {
     std::string name = "Fritz";
-    char buffer[BUFSIZ];
 
     initscr();
     curs_set(0);
@@ -47,13 +47,13 @@ int main(int argc, char **argv)
                 mvprintw(12,3, "Insert IP of the host:"); // (also port if required) (?)
                 echo();
                 mvprintw(15,5, ">> ");
-                echo();
-                getnstr(buffer, BUFSIZ);
+                char server[64]; //FIXME: Change value
+                getstr(server);
                 noecho();
+                doupdate();
                 tetris::client_t cl(name);
-                //endwin();
                 try {
-                    cl.connect(std::string(buffer));
+                    cl.connect(server);
                     cl.play();
                 } catch (char const* err){
                     std::cerr << err << std::endl;
@@ -63,12 +63,25 @@ int main(int argc, char **argv)
             }
             case '3':{
                 //host_game();
-                //fork;
-                // host
-                // connect
-                tetris::server_t srv(2);
-                endwin();
-                srv.run();
+                mvprintw(12,3, "Insert number of players"); // (also port if required) (?)
+                echo();
+                mvprintw(15,5, ">> ");
+                int players; //FIXME: Change value
+                scanw("%d", &players);
+                noecho();
+                pid_t pid = fork();
+                if (pid > 0) {
+                    tetris::client_t cl(name);
+                    endwin();
+                    cl.connect("127.0.0.1");
+                    cl.play();
+                } else if (pid == 0) {
+                    tetris::server_t srv(players);
+                    endwin();
+                    srv.run();
+                } else {
+                    std::cerr << "ERROR Forking" << std::endl;
+                }
                 exit(0);
                 break;
             }
