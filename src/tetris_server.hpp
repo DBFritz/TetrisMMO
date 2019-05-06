@@ -1,6 +1,7 @@
 #ifndef _TETRIS_SERVER_
 #define _TETRIS_SERVER_
 #include <unordered_map>
+#include <sys/socket.h>
 #include "tetris_base.hpp"
 
 namespace tetris{
@@ -33,6 +34,13 @@ namespace tetris{
         void set_command(std::string command, void (game_t::*fun)(int));
         void set_command(std::string command, void (game_t::*fun)());
 
+        template <typename Type_t>
+        void send_command(std::string command, Type_t content, int socket){
+            std::stringstream sendstream;
+            sendstream << command << ' ' << content << std::endl;
+            ::send(socket, sendstream.str().c_str(), sendstream.str().length(), 0);
+        }
+
         //void remove_command(void (game_t::*fun)(int, int), int arg);
         //void remove_command(void (game_t::*fun)(int));
 
@@ -44,5 +52,6 @@ namespace tetris{
 }
 
 std::ostream & operator << (std::ostream &out, const tetris::block_t &b);
+std::ostream & operator << (std::ostream &out, tetris::game_t &g);
 
 #endif

@@ -130,9 +130,7 @@ namespace tetris{
         static int rows= players[player].rows(), cols=players[player].cols();
         std::stringstream sendstream;
         sendstream << "BOARD ";
-        for (int row=0; row< rows; row++)
-            for (int col=0; col< cols; col++)
-                sendstream << players[player](row, col);
+        sendstream << players[player] << std::endl;
         sendstream << std::endl;
         sendstream << "FALLING ";
         sendstream << players[player].getFalling() << std::endl;
@@ -149,13 +147,15 @@ namespace tetris{
     }
 
     void server_t::play(int player){
-        std::stringstream sendstream;
         while (clients_socket[player] != 0) {
-            sendstream.clear();
-            sendstream.str("");
             int lines = players[player].update();
-            if (lines >= 0)
-                sendboard(player);
+            if (lines >= 0) {
+                //send_command("BOARD",   players[player], clients_socket[player]);
+                send_command("FALLING", players[player].getFalling(), clients_socket[player]);
+                send_command("NEXT",    players[player].getNext(), clients_socket[player]);
+                send_command("STORED",  players[player].getStored(), clients_socket[player]);
+                //send_command("ATTACKED", players[attacked[player]], clients_socket[player]);
+            }
             if (lines > 0)
                 players[attacked[player]].add_trash(lines-1);
             //if (players[player].is_over()) {
@@ -207,5 +207,12 @@ namespace tetris{
 
 std::ostream & operator << (std::ostream &out, const tetris::block_t &b){
     out << b.typ << ' ' << b.ori << ' ' << b.loc.first << ' ' << b.loc.second;
+    return out;
+}
+
+std::ostream & operator << (std::ostream &out, tetris::game_t &g){
+    for (int row=0; row< g.rows(); row++)
+            for (int col=0; col< g.cols(); col++)
+                out << g(row, col);
     return out;
 }
