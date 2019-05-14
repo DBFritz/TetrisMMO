@@ -17,7 +17,7 @@ namespace tetris {
     }
     
     game_t::~game_t(){
-        delete board;
+        delete[] board;
     }
     
     bool game_t::bounded(int row, int col, bool exception)
@@ -248,8 +248,8 @@ namespace tetris {
         }
     }
     
-    void game_t::accelerate(int speed){
-        ticks_till_gravity -= speed;
+    void game_t::accelerate(int newremaining){
+        ticks_till_gravity = newremaining;
     }
 
     int game_t::update(bool force){

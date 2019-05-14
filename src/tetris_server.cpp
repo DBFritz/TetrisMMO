@@ -9,7 +9,68 @@
 #include <thread>
 #include <chrono>
 #include <unordered_map>
+#include "tetris_base.hpp"
 #include "tetris_server.hpp"
+
+
+///////////////////////
+//      MESSAGE      //
+///////////////////////
+namespace tetris{
+    message_t::message_t(header_t header, content_type_t content, void * payload, size_t payload_size){
+        packet = static_cast<packet_t *>(::operator new(sizeof(packet_t)+payload_size));
+        packet->payload_size = payload_size;
+        packet->header = header;
+        packet->type_of_content = content;
+        if (payload_size) {
+            std::memcpy(packet->payload, payload, payload_size);
+        }
+    }
+    message_t::message_t(header_t header): message_t(header, message_t::content_type_t::NONE){}
+
+    message_t::message_t(header_t header, game_t &board) :
+    message_t(header, message_t::content_type_t::BOARD,
+        const_cast<tetris::block_type_t *>(board.getBoard()), 
+        //(board.cols()<<sizeof(uint8_t)) | board.rows() ) {}   //Podría almacenar el ancho en un byte y el largo en el otro...
+        board.cols()*board.rows()*sizeof(block_type_t)) {};
+
+    message_t::message_t(header_t header, block_t &block)
+    : message_t(header, message_t::content_type_t::BLOCK, &block, sizeof(block_t)){}
+
+    message_t::message_t(header_t header, std::string str)
+    : message_t(header, message_t::content_type_t::STRING, const_cast<char *>(str.c_str()), str.length()+1){}
+
+    message_t::message_t(header_t header, int32_t value)
+    : message_t(header, message_t::content_type_t::NUMBER, &value, sizeof(int32_t)){}
+
+    message_t::~message_t(){
+        delete packet;
+    }
+
+    void message_t::send(int socket){
+        if (::send(socket, packet, size(), 0) != size())
+            throw "BAD SENDING PACKET"; //FIXME
+        return ;
+    }
+
+    message_t message_t::recv(int socket){
+        message_t::packet_t * packet = new message_t::packet_t;
+        if (::recv(socket, packet, sizeof(packet_t), 0) != sizeof(packet_t)){
+            delete packet;
+            throw "BAD RECIEVING PACKET";
+        }
+        uint8_t * payload = new uint8_t[packet->payload_size];
+        if (::recv(socket, payload, packet->payload_size, 0) != packet->payload_size){
+            delete packet;
+            delete payload;
+            throw "BAD RECIEVING PAYLOAD";
+        }
+        message_t newMessage(packet->header, packet->type_of_content, payload, packet->payload_size);
+        delete packet;
+        delete payload;
+        return newMessage;
+    }
+}
 
 namespace tetris{
     server_t::server_t(int N, bool _verbose): verbose(_verbose), max_players(N){
@@ -21,26 +82,27 @@ namespace tetris{
         attacked[N-1] = 0;
         bzero(clients_socket,N*sizeof(int));
         /// Setting up the default commands.
-        set_command("MOVE", &game_t::move);
-        set_command("ROTATE", &game_t::rotate);
-        set_command("HOLD",&game_t::hold);
-        set_command("DROP",&game_t::drop);
-        set_command("ACCELERATE",&game_t::accelerate);
+        set_command(message_t::header_t::MOVE,      &game_t::move);
+        set_command(message_t::header_t::ROTATE,    &game_t::rotate);
+        set_command(message_t::header_t::HOLD,      &game_t::hold);
+        set_command(message_t::header_t::DROP,      &game_t::drop);
+        set_command(message_t::header_t::ACCELERATE,&game_t::accelerate);
     }
 
     server_t::~server_t(){
-        delete players;
-        delete clients_socket;
+        delete[] players;
+        delete[] clients_socket;
+        delete[] attacked;
     }
 
-    void server_t::set_command(std::string command, void (game_t::*fun)(int)){
+    void server_t::set_command(message_t::header_t command, void (game_t::*fun)(int)){
         //server_t::command_t new_command;
         //new_command.is_with_argument = true;
         //new_command.fun.with_argument = fun;
         commands[command].is_with_argument = true;
         commands[command].fun.with_argument = fun;
     }
-    void server_t::set_command(std::string command, void (game_t::*fun)()){
+    void server_t::set_command(message_t::header_t command, void (game_t::*fun)()){
         commands[command].is_with_argument = false;
         commands[command].fun.wo_argument = fun;
     }
@@ -84,18 +146,14 @@ namespace tetris{
                 std::cerr << "Player " << i << " conected, ip: " << inet_ntoa(address.sin_addr) << ':' << ntohs(address.sin_port) << std::endl; 
             if (verbose)
                 std::cerr << "Sending HI\n" << std::endl;
-            strcpy(buffer,"HI\n");
-            if( send(new_socket, buffer, strlen(buffer), 0) != static_cast<ssize_t>(strlen(buffer)) )
-                throw "ERROR sending HI";
+            message_t(message_t::header_t::SERVERHI, 1).send(clients_socket[i]);
             clients_socket[i] = new_socket;
         }
 
         // Say to all clients that we're ready
-        printf("Sending PLAY\n");
         strcpy(buffer,"PLAY\n");
         for(int i=0;i<max_players;i++)
-            if (send(clients_socket[i], buffer, strlen(buffer), 0) != static_cast<ssize_t>(strlen(buffer)))
-                throw "ERROR sending PLAY";
+            message_t(message_t::header_t::PLAY, players[i]).send(clients_socket[i]);
         
         for(int i=0;i<max_players;i++){
             std::thread t(&server_t::play, this, i);
@@ -119,7 +177,7 @@ namespace tetris{
                 sd = clients_socket[i];
                 if (sd==0) continue;
                 if (FD_ISSET( sd , &fds)) {
-                    buffer[recv(sd, buffer, BUFSIZ, 0)] = 0;
+                    buffer[::recv(sd, buffer, BUFSIZ, 0)] = 0;
                     handle_message(i, std::string(buffer));
                     FD_CLR(sd, &fds);
                 }
@@ -150,11 +208,12 @@ namespace tetris{
         while (clients_socket[player] != 0) {
             int lines = players[player].update();
             if (lines >= 0) {
-                //send_command("BOARD",   players[player], clients_socket[player]);
+                send_command("BOARD",   players[player], clients_socket[player]);
                 send_command("FALLING", players[player].getFalling(), clients_socket[player]);
                 send_command("NEXT",    players[player].getNext(), clients_socket[player]);
                 send_command("STORED",  players[player].getStored(), clients_socket[player]);
-                //send_command("ATTACKED", players[attacked[player]], clients_socket[player]);
+                send_command("ATTACKED", players[attacked[player]], clients_socket[player]);
+                //sendboard(player);
             }
             if (lines > 0)
                 players[attacked[player]].add_trash(lines-1);
@@ -175,12 +234,12 @@ namespace tetris{
             return;
         }
         static std::stringstream recvstream;
-        int value; // just in case
+        //int value; // just in case
         recvstream.clear();
         if (verbose)
             std::cout << "Message from player " << player << ": " << buffer << std::endl;
         recvstream.str(buffer);
-        while (recvstream >> buffer){
+        while (recvstream >> buffer){/*
             if (commands.find(buffer) != commands.end()){
                 if (commands[buffer].is_with_argument){
                     recvstream >> value;
@@ -188,19 +247,13 @@ namespace tetris{
                 } else {
                     (players[player].*(commands[buffer].fun.wo_argument))();
                 }
-            }
-            //if (buffer == "MOVE"){
-            //    int direction;
-            //    recvstream >> direction;
-            //    players[player].move(direction);
-            //} else if (buffer == "DROP"){
-            //    players[player].drop();
-            //} else if (buffer == "ROTATE"){
-            //    int direction;
-            //    recvstream >> direction;
-            //    players[player].rotate(direction);
-            //}
-            sendboard(player);
+            }*/
+            
+            send_command("BOARD",   players[player], clients_socket[player]);
+            send_command("FALLING", players[player].getFalling(), clients_socket[player]);
+            send_command("NEXT",    players[player].getNext(), clients_socket[player]);
+            send_command("STORED",  players[player].getStored(), clients_socket[player]);
+            send_command("ATTACKED", players[attacked[player]], clients_socket[player]);
         }
     }
 }

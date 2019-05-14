@@ -1,6 +1,6 @@
 #ifndef _TETRIS_
 #define _TETRIS_
-
+//#include "tetris_server.hpp"    //MESSAGES
 #include "tetris_curses.hpp"
 #include <ncurses.h>
 #include <sstream>
@@ -13,7 +13,7 @@ namespace tetris{
         singleplayer_t(std::string name = "Unnamed", int rows = 20, int cols = 10);
         void play();
     };
-    //TODO: Complete!
+
     class client_t: public tetris_t{
       protected:
         tetris::keys_t<client_t> keys;
@@ -41,11 +41,12 @@ namespace tetris{
         void draw_enemy_board(std::string name = "");
 
         // Overloading
-        void move(int direction){ send("MOVE", direction); }
-        void rotate(int direction){ send("ROTATE", direction); }
-        void hold() { send("HOLD"); }
-        void drop() { send("DROP"); }
-        void change_attacked(){ send("ATTACK"); }
+        void move(int direction);
+        void rotate(int direction);
+        void hold();
+        void drop();
+        void accelerate(int newremaining = 1);
+        void change_attacked();
     };
 }
 

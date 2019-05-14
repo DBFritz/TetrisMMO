@@ -56,35 +56,36 @@ int main(int argc, char **argv)
                     cl.connect(server);
                     cl.play();
                 } catch (char const* err){
-                    std::cerr << err << std::endl;
+                    std::cerr << "Exception: " << err << std::endl;
                 }
-                //join_game();
                 break;
             }
-            case '3':{
-                //host_game();
-                mvprintw(12,3, "Insert number of players"); // (also port if required) (?)
-                echo();
-                mvprintw(15,5, ">> ");
-                int players; //FIXME: Change value
-                scanw("%d", &players);
-                noecho();
-                pid_t pid = fork();
-                if (pid > 0) {
-                    tetris::client_t cl(name);
-                    endwin();
-                    cl.connect("127.0.0.1");
-                    cl.play();
-                } else if (pid == 0) {
-                    tetris::server_t srv(players);
-                    endwin();
-                    srv.run();
-                } else {
-                    std::cerr << "ERROR Forking" << std::endl;
+            case '3': try
+                {
+                    mvprintw(12,3, "Insert number of players"); // (also port if required) (?)
+                    echo();
+                    mvprintw(15,5, ">> ");
+                    int players; //FIXME: Change value
+                    scanw("%d", &players);
+                    noecho();
+                    pid_t pid = fork();
+                    if (pid > 0) {
+                        tetris::client_t cl(name);
+                        endwin();
+                        cl.connect("127.0.0.1");
+                        cl.play();
+                    } else if (pid == 0) {
+                        tetris::server_t srv(players, true);
+                        endwin();
+                        srv.run();
+                    } else {
+                        std::cerr << "ERROR Forking" << std::endl;
+                    }
+                    exit(0);
+                } catch (char const * err) {
+                    std::cerr << "Exception: " << err << std::endl;
                 }
-                exit(0);
                 break;
-            }
             case '4':{
                 //change_keys();
                 break;

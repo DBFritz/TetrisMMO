@@ -1,6 +1,6 @@
 CC=g++
-FLAGS=-Wall -pedantic
-CFLAGS=$(FLAGS) -c -g -std=c++17 -Isrc/ -I/usr/include/ncurses -I/usr/include 
+FLAGS=-Wall
+CFLAGS=$(FLAGS) -c -std=c++17 -Isrc/ -I/usr/include/ncurses -I/usr/include 
 LFLAGS=$(FLAGS) -lncurses -ltinfo -pthread
 MK_DIR=@mkdir -p
 SOURCES=$(shell find src/ -type f -name "*.cpp")
@@ -8,32 +8,18 @@ SOURCES=$(shell find src/ -type f -name "*.cpp")
 # Targets
 .PHONY: all debug clean clean_all 
 
-all: bin/release/main
+all: bin/tetris
 
 clean:
-	rm -rf obj/release/* bin/release/*
-
-clean_debug: clean
-	rm -rf obj/debug/* bin/debug/*
+	rm -rf obj/* bin/*
 
 clean_all:
 	rm -rf bin/ obj/
 
-obj/release/%.o: src/%.cpp
+obj/%.o: src/%.cpp
 	$(MK_DIR) $(@D)
 	$(CC) $(CFLAGS) $< -o $@
 
-obj/debug/%.o: src/%.cpp
+bin/tetris: $(patsubst src/%.cpp,obj/%.o,$(SOURCES))
 	$(MK_DIR) $(@D)
-	$(CC) $(CFLAGS) $< -o $@
-
-bin/release/main: $(patsubst src/%.cpp,obj/release/%.o,$(SOURCES))
-	$(MK_DIR) $(@D)
-	$(CC) $(patsubst src/%.cpp,obj/release/%.o,$(SOURCES)) $(LFLAGS) -o bin/release/main
-
-bin/debug/main: $(patsubst src/%.cpp,obj/debug/%.o,$(SOURCES))
-	$(MK_DIR) $(@D)
-	$(CC) $(patsubst src/%.cpp,obj/debug/%.o,$(SOURCES)) $(LFLAGS) -o bin/debug/main
-
-debug:
-debug: bin/debug/main
+	$(CC) $(patsubst src/%.cpp,obj/%.o,$(SOURCES)) $(LFLAGS) -o $@

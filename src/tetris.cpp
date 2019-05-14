@@ -6,6 +6,7 @@
 #include <sstream>
 #include <thread>
 #include "tetris.hpp"
+#include "tetris_server.hpp"
 #define PORT 8558
 
 namespace tetris{
@@ -17,6 +18,7 @@ namespace tetris{
         keys.set(' ',       &tetris::singleplayer_t::hold);
         keys.set(KEY_DOWN,  &tetris::singleplayer_t::drop);
         keys.set('x',       &tetris::singleplayer_t::add_trash, 1);
+        keys.set('c',       &tetris::singleplayer_t::accelerate, 2);
     }
 
     void singleplayer_t::play(){
@@ -110,6 +112,13 @@ namespace tetris{
                 paint_block(enemy_w, 1 + i * ROWS_PER_CELL, 1 + j * COLS_PER_CELL, enemy_board[n_cols * i + j]);
         wnoutrefresh(enemy_w);
     }
+
+    void client_t::move(int direction)  {message_t(message_t::header_t::MOVE, direction)  .send(sockfd); }
+    void client_t::rotate(int direction){message_t(message_t::header_t::ROTATE, direction).send(sockfd); }
+    void client_t::hold() { message_t(message_t::header_t::HOLD).send(sockfd);  }
+    void client_t::drop() { message_t(message_t::header_t::DROP).send(sockfd);  }
+    void client_t::accelerate(int r) {message_t(message_t::header_t::ACCELERATE, r)  .send(sockfd);  }
+    void client_t::change_attacked() {message_t(message_t::header_t::CHANGE_ATTACKED).send(sockfd); }
 
     void client_t::handle_socket(){
         std::stringstream data;

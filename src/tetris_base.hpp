@@ -124,6 +124,7 @@ namespace tetris {
 
         game_t(int rows = 20, int cols = 10);
         ~game_t();
+        const block_type_t * getBoard(){return board; }
 
         int update(bool force = false);
         bool is_over();
@@ -150,7 +151,7 @@ namespace tetris {
         void drop();
         void hold();
         void add_trash(int lines = 1);
-        void accelerate(int speed = 1);
+        void accelerate(int newremaining = 1);
     };
 }
 
