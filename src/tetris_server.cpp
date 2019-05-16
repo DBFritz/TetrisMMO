@@ -26,6 +26,8 @@ namespace tetris{
             std::memcpy(packet->payload, payload, payload_size);
         }
     }
+    message_t::message_t(packet_t packet): message_t(packet.header, packet.type_of_content, packet.payload, packet.payload_size){}
+
     message_t::message_t(header_t header): message_t(header, message_t::content_type_t::NONE){}
 
     message_t::message_t(header_t header, game_t &board) :
@@ -34,7 +36,7 @@ namespace tetris{
         //(board.cols()<<sizeof(uint8_t)) | board.rows() ) {}   //Podría almacenar el ancho en un byte y el largo en el otro...
         board.cols()*board.rows()*sizeof(block_type_t)) {};
 
-    message_t::message_t(header_t header, block_t &block)
+    message_t::message_t(header_t header, block_t block)
     : message_t(header, message_t::content_type_t::BLOCK, &block, sizeof(block_t)){}
 
     message_t::message_t(header_t header, std::string str)
@@ -60,11 +62,12 @@ namespace tetris{
             throw "BAD RECIEVING PACKET";
         }
         uint8_t * payload = new uint8_t[packet->payload_size];
-        if (::recv(socket, payload, packet->payload_size, 0) != packet->payload_size){
-            delete packet;
-            delete payload;
-            throw "BAD RECIEVING PAYLOAD";
-        }
+        if (packet->payload_size)
+            if (::recv(socket, payload, packet->payload_size, 0) != packet->payload_size){
+                delete packet;
+                delete payload;
+                throw "BAD RECIEVING PAYLOAD";
+            }
         message_t newMessage(packet->header, packet->type_of_content, payload, packet->payload_size);
         delete packet;
         delete payload;
@@ -77,8 +80,12 @@ namespace tetris{
         players = new game_t[N];
         clients_socket = new int[N];
         attacked = new int[N];
+        attackers = new std::vector<int>[N];
         for (int i=0; i<N;i++)
             attacked[i] = i+1;
+        for(int i=N-1; i>0;i--)
+            attackers[i-1].push_back(i);
+        attackers[0].push_back(N-1);
         attacked[N-1] = 0;
         bzero(clients_socket,N*sizeof(int));
         /// Setting up the default commands.
@@ -93,6 +100,7 @@ namespace tetris{
         delete[] players;
         delete[] clients_socket;
         delete[] attacked;
+        delete[] attackers;
     }
 
     void server_t::set_command(message_t::header_t command, void (game_t::*fun)(int)){
@@ -140,13 +148,13 @@ namespace tetris{
     
         // Wait for all clients
         for(int new_socket, i=0; i<max_players;i++){
-            if ((new_socket = accept(master_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+            if ((new_socket = ::accept(master_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
                     throw "ERROR accepting";
             if (verbose)
                 std::cerr << "Player " << i << " conected, ip: " << inet_ntoa(address.sin_addr) << ':' << ntohs(address.sin_port) << std::endl; 
             if (verbose)
                 std::cerr << "Sending HI\n" << std::endl;
-            message_t(message_t::header_t::SERVERHI, 1).send(clients_socket[i]);
+            message_t(message_t::header_t::SERVERHI, 1).send(new_socket);
             clients_socket[i] = new_socket;
         }
 
@@ -177,46 +185,30 @@ namespace tetris{
                 sd = clients_socket[i];
                 if (sd==0) continue;
                 if (FD_ISSET( sd , &fds)) {
-                    buffer[::recv(sd, buffer, BUFSIZ, 0)] = 0;
-                    handle_message(i, std::string(buffer));
+                    message_t newmsg = message_t::recv(sd);
+                    handle_message(i, &newmsg);
                     FD_CLR(sd, &fds);
                 }
             }
         }
     }
     void server_t::sendboard(int player){
-        static int rows= players[player].rows(), cols=players[player].cols();
-        std::stringstream sendstream;
-        sendstream << "BOARD ";
-        sendstream << players[player] << std::endl;
-        sendstream << std::endl;
-        sendstream << "FALLING ";
-        sendstream << players[player].getFalling() << std::endl;
-        sendstream << "NEXT ";
-        sendstream << players[player].getNext() << std::endl;
-        sendstream << "STORED ";
-        sendstream << players[player].getStored() << std::endl;
-        sendstream << "ATTACKED ";
-        for (int row=0; row< rows; row++)
-            for (int col=0; col< cols; col++)
-                sendstream << players[attacked[player]](row, col);
-        sendstream << std::endl;
-        send(clients_socket[player], sendstream.str().c_str(), sendstream.str().length(), 0);
+
     }
 
     void server_t::play(int player){
         while (clients_socket[player] != 0) {
             int lines = players[player].update();
-            if (lines >= 0) {
-                send_command("BOARD",   players[player], clients_socket[player]);
-                send_command("FALLING", players[player].getFalling(), clients_socket[player]);
-                send_command("NEXT",    players[player].getNext(), clients_socket[player]);
-                send_command("STORED",  players[player].getStored(), clients_socket[player]);
-                send_command("ATTACKED", players[attacked[player]], clients_socket[player]);
-                //sendboard(player);
-            }
             if (lines > 0)
                 players[attacked[player]].add_trash(lines-1);
+            if (lines >=-1)
+                message_t(message_t::header_t::FALLING, players[player].getFalling()).send(clients_socket[player]);
+            if (lines >= 0) {
+                message_t(message_t::header_t::BOARD, players[player]).send(clients_socket[player]);
+                for(auto i: attackers[player])
+                    message_t(message_t::header_t::ATTACKED, players[player]).send(clients_socket[i]);
+            }
+
             //if (players[player].is_over()) {
             //    shutdown(clients_socket[player],2);
             //    clients_socket[player] = 0;
@@ -225,36 +217,23 @@ namespace tetris{
         }
     }
 
-    void server_t::handle_message(int player, std::string buffer){
-        if ( buffer.length() == 0 ) {    // Somebody disconnected
+    void server_t::handle_message(int player, message_t *msg){
+        if ( msg == nullptr ) {    // Somebody disconnected
             if (verbose)
                 std::cout << "Player " << player << " disconnected" << std::endl;
             shutdown(clients_socket[player],2);
             clients_socket[player] = 0;
             return;
         }
-        static std::stringstream recvstream;
-        //int value; // just in case
-        recvstream.clear();
-        if (verbose)
-            std::cout << "Message from player " << player << ": " << buffer << std::endl;
-        recvstream.str(buffer);
-        while (recvstream >> buffer){/*
-            if (commands.find(buffer) != commands.end()){
-                if (commands[buffer].is_with_argument){
-                    recvstream >> value;
-                    (players[player].*(commands[buffer].fun.with_argument))(value);
-                } else {
-                    (players[player].*(commands[buffer].fun.wo_argument))();
-                }
-            }*/
-            
-            send_command("BOARD",   players[player], clients_socket[player]);
-            send_command("FALLING", players[player].getFalling(), clients_socket[player]);
-            send_command("NEXT",    players[player].getNext(), clients_socket[player]);
-            send_command("STORED",  players[player].getStored(), clients_socket[player]);
-            send_command("ATTACKED", players[attacked[player]], clients_socket[player]);
+        message_t::header_t header = msg->getHeader();
+        if (commands.find(header) != commands.end()){
+            if (commands[header].is_with_argument){
+                (players[player].*(commands[header].fun.with_argument))(*static_cast<int32_t *>(const_cast<void *>(msg->getPayload())));
+            } else {
+                (players[player].*(commands[header].fun.wo_argument))();
+            }
         }
+        message_t(message_t::header_t::FALLING, players[player].getFalling()).send(clients_socket[player]);
     }
 }
 

@@ -90,7 +90,7 @@ namespace tetris{
         void draw_block(WINDOW *w, block_t block, std::string text = "");
     public:
 
-        void draw_board();
+        void draw_board(bool drawfalling = true);
         void draw_falling();
         void draw_hold(std::string text = "Stored") { draw_block(stored_w,getStored(), text); }
         void draw_next(std::string text = "Next") { draw_block(next_w,getNext(), text); }

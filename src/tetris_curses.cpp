@@ -78,7 +78,7 @@ namespace tetris{
             }
         wnoutrefresh(w);
     }
-    void tetris_t::draw_board(){
+    void tetris_t::draw_board(bool drawfalling){
         werase(board_w);
         box(board_w, 0, 0);
         wmove(board_w, 0, (getmaxx(board_w)-name.length())/2);
@@ -86,16 +86,15 @@ namespace tetris{
         for (int i = 0; i < rows(); i++)
             for (int j = 0; j < cols(); j++)
                 paint_block(board_w, 1 + i * ROWS_PER_CELL, 1 + j * COLS_PER_CELL, operator()(i,j));
-        wnoutrefresh(board_w);
-    }
-
-    void tetris_t::draw_falling(){
-        block_t block = getFalling();
-        for (int b = 0; b < TETRIS; b++) {
-            location_t c = block.tetromino()[b];
-            if (bounded(block.loc.y + c.y, block.loc.x + c.x))
-                paint_block(board_w,  block.loc.y + c.y + 1, (block.loc.x + c.x) * COLS_PER_CELL + 1, block.typ);
+        if (drawfalling){
+                    block_t block = getFalling();
+            for (int b = 0; b < TETRIS; b++) {
+                location_t c = block.tetromino()[b];
+                if (bounded(block.loc.y + c.y, block.loc.x + c.x))
+                    paint_block(board_w,  block.loc.y + c.y + 1, (block.loc.x + c.x) * COLS_PER_CELL + 1, block.typ);
+            }
         }
+        //wnoutrefresh(board_w);
         wnoutrefresh(board_w);
     }
 

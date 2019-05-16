@@ -263,9 +263,9 @@ namespace tetris {
                 new_falling();
                 return lines;
             }
-            return 0;
+            return -1;
         };
-        return -1;
+        return -2;
     }
 }
 

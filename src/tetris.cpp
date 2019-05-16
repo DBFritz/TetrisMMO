@@ -25,7 +25,6 @@ namespace tetris{
         while (!is_over()) {
             update();
             draw_board();
-            draw_falling();
             draw_next("Next");
             draw_hold("Stored");
             draw_score();
@@ -50,7 +49,7 @@ namespace tetris{
     }
     client_t::~client_t(){
         shutdown(sockfd, 2);
-        delete enemy_board;
+        delete[] enemy_board;
     }
 
     bool client_t::connect(std::string _server){
@@ -62,7 +61,7 @@ namespace tetris{
         serv_addr.sin_family = AF_INET;
         bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
         serv_addr.sin_port = htons(PORT);
-        if (::connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
+        if (::connect(sockfd, (struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
             throw "CONNECTION ERROR";
         //std::cerr << "Executing thread" << std::endl;
         socket_handler = std::thread(&client_t::handle_socket, this);
@@ -95,7 +94,6 @@ namespace tetris{
     }
     
     void client_t::play(){
-        std::stringstream stream;
         timeout(-1); //wait for input
         while(1){
             keys(*this, getch());
@@ -121,45 +119,35 @@ namespace tetris{
     void client_t::change_attacked() {message_t(message_t::header_t::CHANGE_ATTACKED).send(sockfd); }
 
     void client_t::handle_socket(){
-        std::stringstream data;
         while (sockfd){
-            char buffer[BUFSIZ];
-            std::string command;
-            buffer[recv(sockfd, buffer, BUFSIZ, 0)] = 0;
+            message_t msg = message_t::recv(sockfd);
             //std::cerr << "New message!" << std::endl;
-            streamrcv.clear();
-            //streamrcv.str()[recv(sockfd, const_cast<char *>(streamrcv.str().c_str()), 8168, 0)] = 0; // DOESN'T WORK
-            streamrcv.str(std::string(buffer));
-            
-            while (streamrcv >> command){
-                //std::cerr << "Recieved: " << streamrcv.str() << std::endl;
-                if (command == "BOARD") {
-                    if (streamrcv >> command){
-                        for(unsigned i=0; i < command.length(); i++)
-                            board[i] = static_cast<block_type_t>(command[i]-'0');
-                        draw_board();
-                    } else {
-                        std::cerr << "EXPECTED BOARD";
-                    }
-                } else if (command == "FALLING") {
-                    streamrcv >> falling;
-                    draw_falling();
+            switch (msg.getHeader()){
+                case message_t::header_t::BOARD:
+                    std::memcpy(board, msg.getPayload(),msg.getPayloadSize());
+                    draw_board();
                     doupdate();
-                } else if (command == "NEXT") {
-                    streamrcv >> next;
-                    draw_next();
+                    break;
+                case message_t::header_t::FALLING:
+                    std::memcpy(static_cast<void *>(&falling), msg.getPayload(), msg.getPayloadSize());
+                    draw_board();
                     doupdate();
-                } else if (command == "STORED") {
-                    streamrcv >> stored;
-                    draw_hold();
+                    break;
+                case message_t::header_t::ATTACKED:
+                    std::memcpy(&enemy_board, msg.getPayload(), msg.getPayloadSize());
+                    draw_board(false);
                     doupdate();
-                } else if (command == "ATTACKED") {
-                    streamrcv >> command;
-                    for(unsigned i=0; i < command.length(); i++)
-                        enemy_board[i] = static_cast<block_type_t>(command[i]-'0');
-                    draw_enemy_board();
-                    doupdate();
-                }
+                    break;
+                case message_t::header_t::NEXT:
+                    break;
+                case message_t::header_t::STORED:
+                    break;
+                case message_t::header_t::POINTS:
+                    break;
+                case message_t::header_t::WIN:
+                    break;
+                default:
+                    break;
             }
         }
     }

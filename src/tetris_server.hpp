@@ -2,6 +2,7 @@
 #define _TETRIS_SERVER_ 
 #include <unordered_map>
 #include <sys/socket.h>
+#include <vector>
 #include "tetris_base.hpp"
 
 
@@ -24,35 +25,41 @@ namespace tetris{
             // Client -> Server
             CLIENTHI = 0x00, MOVE, ROTATE, HOLD, DROP, ACCELERATE, CHANGE_ATTACKED, DISCONNECT,
             // Server -> Client
-            SERVERHI = 0x80, PLAY, BOARD, ATTACKED, NEXT, STORED, POINTS, WIN, LOSES
+            SERVERHI = 0x80, PLAY, BOARD, ATTACKED, FALLING, NEXT, STORED, POINTS, WIN, LOSES
         };
         enum class content_type_t: uint8_t {
             NONE, BOARD, BLOCK, STRING, NUMBER
         };
-    private:
         struct packet_t {
             header_t header;
             content_type_t type_of_content;
             uint16_t payload_size;
             uint8_t payload[0];      // doesn't contribute in sizeof();
         };
-        packet_t * packet;
 
-    public:
+        message_t(packet_t packet);
         message_t(header_t header, content_type_t content, void * payload = nullptr, size_t payload_size = 0);
 
         message_t(header_t header);
         message_t(header_t header, game_t &board);
-        message_t(header_t header, block_t &block);
+        message_t(header_t header, block_t block);
         message_t(header_t header, std::string str);
         message_t(header_t header, int32_t value);
         ~message_t();
+
 
         bool is_server();
         void send(int socket);
         static message_t recv(int socket);
 
-        uint16_t size() {return sizeof(packet_t)+packet->payload_size; }
+        const header_t getHeader() { return packet->header; }
+        const content_type_t getContentType() { return packet->type_of_content; }
+        const void * getPayload() { return packet->payload; }
+        uint16_t getPayloadSize() { return packet->payload_size; }
+        uint16_t size() { return sizeof(packet_t)+packet->payload_size; }
+
+    private:
+        packet_t * packet;
     };
 
     class server_t{
@@ -62,6 +69,7 @@ namespace tetris{
         int max_players;
         game_t *players;
         int *attacked;
+        std::vector<int> *attackers;
         std::string *names;
         int *clients_socket;
 
@@ -72,6 +80,8 @@ namespace tetris{
                 void (game_t::*with_argument)(int);
                 void (game_t::*wo_argument)();
             } fun;
+            bool has_response;
+
         };
         std::unordered_map<message_t::header_t, command_t> commands;
         //message_t::header_t message;
@@ -85,18 +95,11 @@ namespace tetris{
         void set_command(message_t::header_t command, void (game_t::*fun)(int));
         void set_command(message_t::header_t command, void (game_t::*fun)());
 
-        template <typename Type_t>
-        void send_command(std::string command, Type_t content, int socket){
-            std::stringstream sendstream;
-            sendstream << command << ' ' << content << std::endl;
-            send(socket, sendstream.str().c_str(), sendstream.str().length(), 0);
-        }
-
         //void remove_command(void (game_t::*fun)(int, int), int arg);
         //void remove_command(void (game_t::*fun)(int));
 
         void run(int port=8558);
-        void handle_message(int player, std::string str);
+        void handle_message(int player, message_t *msg);
 
         void play(int player);
     };

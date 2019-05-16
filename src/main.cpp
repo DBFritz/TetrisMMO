@@ -68,19 +68,22 @@ int main(int argc, char **argv)
                     int players; //FIXME: Change value
                     scanw("%d", &players);
                     noecho();
+                    
                     pid_t pid = fork();
                     if (pid > 0) {
                         tetris::client_t cl(name);
                         endwin();
                         cl.connect("127.0.0.1");
                         cl.play();
-                    } else if (pid == 0) {
-                        tetris::server_t srv(players, true);
+                    } else if (pid == 0) { // */
                         endwin();
+                        std::cout << players << std::endl;
+                        tetris::server_t srv(players, true);
                         srv.run();
+                    
                     } else {
                         std::cerr << "ERROR Forking" << std::endl;
-                    }
+                    } // */
                     exit(0);
                 } catch (char const * err) {
                     std::cerr << "Exception: " << err << std::endl;
