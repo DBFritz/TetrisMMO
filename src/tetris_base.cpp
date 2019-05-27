@@ -23,12 +23,12 @@ namespace tetris {
     bool game_t::bounded(int row, int col, bool exception)
     {
         if (exception) {
-            if (row>=n_rows)
-                throw exception_t::Y_OVERFLOW;
-            else if (col<0)
+            if (col<0)
                 throw exception_t::X_UNDERFLOW;
             else if (col>=n_cols)
                 throw exception_t::X_OVERFLOW;
+            else if (row>=n_rows)
+                throw exception_t::Y_OVERFLOW;
             else if (row<0)
                 throw exception_t::Y_UNDERFLOW;
         }
@@ -101,11 +101,10 @@ namespace tetris {
         return 0;
     }
 
-    //FIXME: BUG CUANDO EMPIEZA LA PIEZA Y LA MUEVO MUCHO PARA EL COSTADO
     void game_t::move(int direction){
-        falling.loc.x += direction;
         try {
-            if (!fits(falling,true))
+            falling.loc.x += direction;
+            if (!fits(falling, true))
                 falling.loc.x -= direction;
         } catch (exception_t err) {
             if (err!=Y_UNDERFLOW)

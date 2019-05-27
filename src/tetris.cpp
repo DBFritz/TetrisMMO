@@ -44,7 +44,12 @@ namespace tetris{
         keys.set('c',       &tetris::client_t::change_attacked);
         //keys.set('s',       &tetris::client_t::add_trash, 1);
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        enemy_w = newwin(ROWS_PER_CELL * n_rows + 2, COLS_PER_CELL * n_cols + 2, 0,  getmaxx(stored_w) + getmaxx(board_w) + getmaxx(next_w));
+        trash_w = newwin(ROWS_PER_CELL * trash_stack_size + 2, COLS_PER_CELL+2,
+            getmaxy(board_w)-ROWS_PER_CELL*trash_stack_size-2, getmaxx(stored_w)-COLS_PER_CELL-2);
+        trash_enemy_w = newwin(ROWS_PER_CELL * trash_stack_size + 2, COLS_PER_CELL+2, 
+            getmaxy(board_w)-ROWS_PER_CELL*trash_stack_size-2, getmaxx(stored_w)+getmaxx(board_w)+getmaxx(next_w));
+        enemy_w = newwin(ROWS_PER_CELL * n_rows + 2, COLS_PER_CELL * n_cols + 2,
+            0, getmaxx(stored_w)+getmaxx(board_w)+getmaxx(next_w)+getmaxx(trash_enemy_w));
         enemy_board = new block_type_t[n_rows*n_cols];
     }
     client_t::~client_t(){
@@ -108,7 +113,20 @@ namespace tetris{
         for (int i = 0; i < rows(); i++)
             for (int j = 0; j < cols(); j++)
                 paint_block(enemy_w, 1 + i * ROWS_PER_CELL, 1 + j * COLS_PER_CELL, enemy_board[n_cols * i + j]);
+        touchwin(enemy_w);
         wnoutrefresh(enemy_w);
+    }
+
+    void client_t::draw_trash_stack(WINDOW * w, int trash){
+        werase(w);
+        box(w, 0, 0);
+        trash = (trash>trash_stack_size ? trash_stack_size : trash);
+        for(int i=trash_stack_size-trash-1;i>=0;i--)
+            paint_block(w, 1+i*ROWS_PER_CELL, 1, block_type_t::EMPTY);
+        for(int i=trash_stack_size-trash;i<trash_stack_size; i++)
+            paint_block(w, 1+i*ROWS_PER_CELL, 1, block_type_t::TRASH);
+        touchwin(w);
+        wnoutrefresh(w);
     }
 
     void client_t::move(int direction)  {message_t(message_t::header_t::MOVE, direction)  .send(sockfd); }
@@ -119,10 +137,25 @@ namespace tetris{
     void client_t::change_attacked() {message_t(message_t::header_t::CHANGE_ATTACKED).send(sockfd); }
 
     void client_t::handle_socket(){
+        message_t(message_t::header_t::CLIENTHI, name).send(sockfd);
         while (sockfd){
             message_t msg = message_t::recv(sockfd);
             //std::cerr << "New message!" << std::endl;
             switch (msg.getHeader()){
+                case message_t::header_t::PLAY:
+                    clear();
+                    doupdate();
+                    refresh();
+                    draw_board();
+                    draw_enemy_board(attacked);
+                    draw_hold();
+                    draw_next();
+                    draw_score();
+                    draw_trash_stack(trash_w,0);
+                    draw_trash_stack(trash_enemy_w,0);
+                    refresh();
+                    doupdate();
+                    break;
                 case message_t::header_t::BOARD:
                     std::memcpy(board, msg.getPayload(),msg.getPayloadSize());
                     draw_board();
@@ -134,15 +167,39 @@ namespace tetris{
                     doupdate();
                     break;
                 case message_t::header_t::ATTACKED:
-                    std::memcpy(&enemy_board, msg.getPayload(), msg.getPayloadSize());
-                    draw_board(false);
+                    std::memcpy(enemy_board, msg.getPayload(), msg.getPayloadSize());
+                    draw_enemy_board(attacked);
                     doupdate();
                     break;
                 case message_t::header_t::NEXT:
+                    std::memcpy(static_cast<void *>(&next), msg.getPayload(), msg.getPayloadSize());
+                    draw_next();
+                    doupdate();
                     break;
                 case message_t::header_t::STORED:
+                    std::memcpy(static_cast<void *>(&stored), msg.getPayload(), msg.getPayloadSize());
+                    draw_hold();
+                    doupdate();
                     break;
                 case message_t::header_t::POINTS:
+                    std::memcpy(static_cast<void *>(&score), msg.getPayload(), msg.getPayloadSize());
+                    draw_score();
+                    doupdate();
+                    break;
+                case message_t::header_t::TRASH_STACK:
+                    int trash;
+                    std::memcpy(static_cast<void *>(&trash), msg.getPayload(), msg.getPayloadSize());
+                    draw_trash_stack(trash_w,trash);
+                    doupdate();
+                    break;
+                case message_t::header_t::TRASH_ENEMY_STACK:
+                    int enemy_trash;
+                    std::memcpy(static_cast<void *>(&enemy_trash), msg.getPayload(), msg.getPayloadSize());
+                    draw_trash_stack(trash_enemy_w,enemy_trash);
+                    doupdate();
+                    break;
+                case message_t::header_t::ATT_NAME:
+                    attacked = std::string(static_cast<const char *>(msg.getPayload()));
                     break;
                 case message_t::header_t::WIN:
                     break;

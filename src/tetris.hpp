@@ -25,6 +25,9 @@ namespace tetris{
         std::thread socket_handler;
 
         block_type_t *enemy_board;
+        WINDOW * trash_w;
+
+        WINDOW * trash_enemy_w;
         WINDOW * enemy_w;
 
         void send(std::string command, int value);
@@ -39,6 +42,7 @@ namespace tetris{
 
         bool connect(std::string server = "127.0.0.1");
         void draw_enemy_board(std::string name = "");
+        void draw_trash_stack(WINDOW * w, int trash);
 
         // Overloading
         void move(int direction);

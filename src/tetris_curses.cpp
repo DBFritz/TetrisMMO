@@ -76,6 +76,7 @@ namespace tetris{
                 location_t c = block.tetromino()[b];
                 paint_block(w, c.y * ROWS_PER_CELL + 1, c.x * COLS_PER_CELL + 1, block.typ);
             }
+        touchwin(w);
         wnoutrefresh(w);
     }
     void tetris_t::draw_board(bool drawfalling){
@@ -95,6 +96,7 @@ namespace tetris{
             }
         }
         //wnoutrefresh(board_w);
+        touchwin(board_w);
         wnoutrefresh(board_w);
     }
 
@@ -103,6 +105,7 @@ namespace tetris{
         wprintw(score_w, "Score:%4d", score);
         wprintw(score_w, "Level:%4d", level);
         wprintw(score_w, "Lines:%4d", lines_remaining);
+        touchwin(score_w);
         wnoutrefresh(score_w);
     }
 }

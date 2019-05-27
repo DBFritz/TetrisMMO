@@ -16,7 +16,13 @@
 
 int main(int argc, char **argv)
 {
-    std::string name = "Fritz";
+    std::string name = "Unnamed";
+    if (argc>1) {
+        name = std::string(argv[1]);
+    } else {
+        std::cout << "Ingrese su nombre: " ;
+        std::cin >> name;
+    }
 
     initscr();
     curs_set(0);
@@ -78,7 +84,7 @@ int main(int argc, char **argv)
                     } else if (pid == 0) { // */
                         endwin();
                         std::cout << players << std::endl;
-                        tetris::server_t srv(players, true);
+                        tetris::server_t srv(players);
                         srv.run();
                     
                     } else {

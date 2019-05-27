@@ -3,7 +3,10 @@
 #include <unordered_map>
 #include <sys/socket.h>
 #include <vector>
+#include <unordered_map>
+#include <utility>
 #include "tetris_base.hpp"
+#include <mutex>
 
 
 // #include <new>          //placement
@@ -25,7 +28,7 @@ namespace tetris{
             // Client -> Server
             CLIENTHI = 0x00, MOVE, ROTATE, HOLD, DROP, ACCELERATE, CHANGE_ATTACKED, DISCONNECT,
             // Server -> Client
-            SERVERHI = 0x80, PLAY, BOARD, ATTACKED, FALLING, NEXT, STORED, POINTS, WIN, LOSES
+            SERVERHI = 0x80, PLAY, BOARD, ATTACKED, ATT_NAME, FALLING, NEXT, STORED, POINTS, TRASH_STACK, TRASH_ENEMY_STACK, WIN, LOSES
         };
         enum class content_type_t: uint8_t {
             NONE, BOARD, BLOCK, STRING, NUMBER
@@ -38,7 +41,7 @@ namespace tetris{
         };
 
         message_t(packet_t packet);
-        message_t(header_t header, content_type_t content, void * payload = nullptr, size_t payload_size = 0);
+        message_t(header_t header, content_type_t content, const void * payload = nullptr, size_t payload_size = 0);
 
         message_t(header_t header);
         message_t(header_t header, game_t &board);
@@ -47,7 +50,8 @@ namespace tetris{
         message_t(header_t header, int32_t value);
         ~message_t();
 
-
+        message_t &update(const void * payload);
+        message_t &update(const void * payload, uint16_t size);
         bool is_server();
         void send(int socket);
         static message_t recv(int socket);
@@ -62,29 +66,33 @@ namespace tetris{
         packet_t * packet;
     };
 
+    const int trash_stack_size{14};
     class server_t{
       private:
         bool verbose;
 
         int max_players;
         game_t *players;
+        std::mutex *trash_mtx;
+        int *trash_stacks;
+
         int *attacked;
         std::vector<int> *attackers;
         std::string *names;
-        int *clients_socket;
 
-        void sendboard(int player);
+        int master_socket;
+        int *clients_socket;
+        bool running = false;
+
         struct command_t {
             bool is_with_argument;
             union fun_t {
                 void (game_t::*with_argument)(int);
                 void (game_t::*wo_argument)();
             } fun;
-            bool has_response;
-
         };
         std::unordered_map<message_t::header_t, command_t> commands;
-        //message_t::header_t message;
+        std::unordered_map<message_t::header_t, std::pair<const void *, message_t> > responses;
 
       public:
         server_t(int N=2, bool verbose = false);
@@ -94,6 +102,8 @@ namespace tetris{
 
         void set_command(message_t::header_t command, void (game_t::*fun)(int));
         void set_command(message_t::header_t command, void (game_t::*fun)());
+        void set_response(message_t::header_t command,
+            message_t::header_t response, message_t::content_type_t content, const void * payload, uint16_t payload_size);
 
         //void remove_command(void (game_t::*fun)(int, int), int arg);
         //void remove_command(void (game_t::*fun)(int));
