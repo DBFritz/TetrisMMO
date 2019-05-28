@@ -82,7 +82,6 @@ int main(int argc, char **argv)
                         tetris::client_t cl(name);
                         endwin();
                         close(ready[1]);
-                        std::this_thread::sleep_for(std::chrono::milliseconds(16));
                         cl.connect("127.0.0.1");
                         cl.play();
                     } else if (pid == 0) { // */
