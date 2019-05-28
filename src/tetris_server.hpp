@@ -1,12 +1,21 @@
 #ifndef _TETRIS_SERVER_
 #define _TETRIS_SERVER_ 
-#include <unordered_map>
+#include <iostream>
 #include <sys/socket.h>
-#include <vector>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <cstring>
+#include <string>
+#include <algorithm>
+#include <sstream>
+#include <arpa/inet.h>
+#include <thread>
+#include <chrono>
 #include <unordered_map>
 #include <utility>
-#include "tetris_base.hpp"
 #include <mutex>
+#include "tetris_base.hpp"
+#include "tetris_server.hpp"
 
 
 // #include <new>          //placement
@@ -72,7 +81,8 @@ namespace tetris{
         bool verbose;
 
         int max_players;
-        game_t *players;
+        game_t *game;
+        int current_players;
         std::mutex *trash_mtx;
         int *trash_stacks;
 
@@ -81,6 +91,7 @@ namespace tetris{
         std::string *names;
 
         int master_socket;
+        struct sockaddr_in address;
         int *clients_socket;
         bool running = false;
 
@@ -108,14 +119,19 @@ namespace tetris{
         //void remove_command(void (game_t::*fun)(int, int), int arg);
         //void remove_command(void (game_t::*fun)(int));
 
-        void run(int port=8558);
+        void start(int port=8558);
+        void run();
         void handle_message(int player, message_t *msg);
 
         void play(int player);
+        void disconnect(int player);
+        void disconnect(int player, message_t msg);
     };
 }
 
 std::ostream & operator << (std::ostream &out, const tetris::block_t &b);
 std::ostream & operator << (std::ostream &out, tetris::game_t &g);
+
+std::ostream & operator << (std::ostream &out, tetris::message_t &g);
 
 #endif

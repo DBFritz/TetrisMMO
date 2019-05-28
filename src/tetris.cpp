@@ -42,7 +42,6 @@ namespace tetris{
         keys.set(' ',       &tetris::client_t::hold);
         keys.set(KEY_DOWN,  &tetris::client_t::drop);
         keys.set('c',       &tetris::client_t::change_attacked);
-        //keys.set('s',       &tetris::client_t::add_trash, 1);
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         trash_w = newwin(ROWS_PER_CELL * trash_stack_size + 2, COLS_PER_CELL+2,
             getmaxy(board_w)-ROWS_PER_CELL*trash_stack_size-2, getmaxx(stored_w)-COLS_PER_CELL-2);
@@ -202,6 +201,10 @@ namespace tetris{
                     attacked = std::string(static_cast<const char *>(msg.getPayload()));
                     break;
                 case message_t::header_t::WIN:
+                    break;
+                case message_t::header_t::LOSES:
+                    shutdown(sockfd, 2);
+                    sockfd = 0;
                     break;
                 default:
                     break;
