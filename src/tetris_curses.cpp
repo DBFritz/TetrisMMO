@@ -66,6 +66,27 @@ namespace tetris{
         mvwaddchstr(w, y, x, BLOCK_STR[(int)type]);
     }
 
+    void tetris_t::display_centered_message(WINDOW *w, std::string text){
+        wclear(w);
+        box(w, 0, 0);
+        int lines = 1, len=0, max_len = 0;
+        for(auto c: text) {
+            len+=1;
+            if (len>max_len)
+                max_len=len;
+            if (c=='\n') {
+                len=0;
+                lines++;
+            }
+        }
+        wmove(w, (getmaxx(w)-lines)/2, (getmaxy(w)-max_len)/2);
+        wprintw(w, text.c_str());
+        wrefresh(w);
+        timeout(-1);
+        getch();
+        timeout(0);
+    }
+
     void tetris_t::draw_block(WINDOW * w, block_t block, std::string text){
         werase(w);
         box(w, 0, 0);
@@ -79,6 +100,7 @@ namespace tetris{
         touchwin(w);
         wnoutrefresh(w);
     }
+
     void tetris_t::draw_board(bool drawfalling){
         werase(board_w);
         box(board_w, 0, 0);

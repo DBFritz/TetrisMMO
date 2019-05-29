@@ -17,25 +17,13 @@
 #include "tetris_base.hpp"
 #include "tetris_server.hpp"
 
-
-// #include <new>          //placement
-// char buf[1024];
-// message_t *pm = new (&buf[0]) message_t(MOVE);
-
 namespace tetris{
-    
-    /*
-    uint8_t *payload = new uint8_t[max_packet_size];
-    message_t *packet = new (payload) message_t()
-
-    uint8_t buf[max_packet_size];
-    message_t *packet = new (buf) message_t();*/
 
     class message_t {
     public:
         enum class header_t: uint8_t {
             // Client -> Server
-            CLIENTHI = 0x00, MOVE, ROTATE, HOLD, DROP, ACCELERATE, CHANGE_ATTACKED, DISCONNECT,
+            CLIENTHI = 0x00, MOVE, ROTATE, HOLD, DROP, ACCELERATE, CHANGE_ATTACKED, DISCONNECT, SMS = 0x79,
             // Server -> Client
             SERVERHI = 0x80, PLAY, BOARD, ATTACKED, ATT_NAME, FALLING, NEXT, STORED, POINTS, TRASH_STACK, TRASH_ENEMY_STACK, WIN, LOSES
         };
@@ -46,7 +34,7 @@ namespace tetris{
             header_t header;
             content_type_t type_of_content;
             uint16_t payload_size;
-            uint8_t payload[0];      // doesn't contribute in sizeof();
+            uint8_t payload[0];
         };
 
         message_t(packet_t packet);
@@ -61,6 +49,7 @@ namespace tetris{
 
         message_t &update(const void * payload);
         message_t &update(const void * payload, uint16_t size);
+
         bool is_server();
         void send(int socket);
         static message_t recv(int socket);
@@ -75,7 +64,6 @@ namespace tetris{
         packet_t * packet;
     };
 
-    const int trash_stack_size{14};
     class server_t{
       private:
         bool verbose;
@@ -106,6 +94,8 @@ namespace tetris{
         std::unordered_map<message_t::header_t, std::pair<const void *, message_t> > responses;
 
       public:
+        static const int trash_stack_size{14};
+        
         server_t(int N=2, bool verbose = false);
         ~server_t();
 

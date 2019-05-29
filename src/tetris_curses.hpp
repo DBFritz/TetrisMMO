@@ -16,35 +16,6 @@
 namespace tetris{
     const int COLS_PER_CELL{2};
     const int ROWS_PER_CELL{1};
-    /*
-    const chtype BLOCK_STR[NUM_TETROMINOS+2][(COLS_PER_CELL+1)*ROWS_PER_CELL] = {
-        {' ', ' '},                  // EMPTY
-        {' ', ' '},                   // I
-        {' ', ' '},                   // J
-        {' ', ' '},                   // L
-        {' ', ' '},                   // O
-        {' ', ' '},                   // S
-        {' ', ' '},                   // T
-        {' ', ' '},                   // Z
-        {ACS_CKBOARD, ACS_CKBOARD},  // TRASH
-    };          /// FIXME: DOESN'T WORK HERE: MOVED TO .CPP
-    */  
-    //const std::string BLOCK_STR[NUM_TETROMINOS+2] = {
-    //    "  ", "  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "
-    //    //L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"  \n  ", L"▓▓\n▓▓"
-    //};
-
-    //const std::vector<std::vector<int>> colours({
-    //    {   0,   0,   0},
-    //    {   0, 704, 984},
-    //    {   0,   0,1000},
-    //    {1000, 500,  10},
-    //    {1000,1000,   0},
-    //    {   0,1000,   0},
-    //    { 588, 448, 876},
-    //    {1000,   0,   0},
-    //    {1000,1000,1000}
-    //});
 
     class window_t{
         WINDOW * self;
@@ -88,6 +59,8 @@ namespace tetris{
         std::string name;
         WINDOW *board_w, *stored_w, *next_w, *score_w;
         void draw_block(WINDOW *w, block_t block, std::string text = "");
+        
+        void display_centered_message(WINDOW *w, std::string text);
     public:
 
         void draw_board(bool drawfalling = true);
@@ -95,6 +68,7 @@ namespace tetris{
         void draw_hold(std::string text = "Stored") { draw_block(stored_w,getStored(), text); }
         void draw_next(std::string text = "Next") { draw_block(next_w,getNext(), text); }
         void draw_score();
+        
 
         tetris_t(std::string name = "Unnamed", int rows = 20, int cols = 10);
         ~tetris_t();

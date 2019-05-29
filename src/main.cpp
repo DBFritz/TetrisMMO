@@ -12,7 +12,6 @@
 #include "tetris.hpp"
 #include "tetris_server.hpp"
 #include <unistd.h>
-//FIXME: Bug when moving all to the right side when the piece is starting to falling
 
 int main(int argc, char **argv)
 {

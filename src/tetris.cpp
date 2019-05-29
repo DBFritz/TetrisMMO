@@ -17,7 +17,7 @@ namespace tetris{
         keys.set(KEY_RIGHT, &tetris::singleplayer_t::move,     1);
         keys.set(' ',       &tetris::singleplayer_t::hold);
         keys.set(KEY_DOWN,  &tetris::singleplayer_t::drop);
-        keys.set('x',       &tetris::singleplayer_t::add_trash, 1);
+        //keys.set('x',       &tetris::singleplayer_t::add_trash, 1);
         keys.set('c',       &tetris::singleplayer_t::accelerate, 2);
     }
 
@@ -42,11 +42,12 @@ namespace tetris{
         keys.set(' ',       &tetris::client_t::hold);
         keys.set(KEY_DOWN,  &tetris::client_t::drop);
         keys.set('c',       &tetris::client_t::change_attacked);
+        keys.set('a',       &tetris::client_t::accelerate, 1);
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        trash_w = newwin(ROWS_PER_CELL * trash_stack_size + 2, COLS_PER_CELL+2,
-            getmaxy(board_w)-ROWS_PER_CELL*trash_stack_size-2, getmaxx(stored_w)-COLS_PER_CELL-2);
-        trash_enemy_w = newwin(ROWS_PER_CELL * trash_stack_size + 2, COLS_PER_CELL+2, 
-            getmaxy(board_w)-ROWS_PER_CELL*trash_stack_size-2, getmaxx(stored_w)+getmaxx(board_w)+getmaxx(next_w));
+        trash_w = newwin(ROWS_PER_CELL * server_t::trash_stack_size + 2, COLS_PER_CELL+2,
+            getmaxy(board_w)-ROWS_PER_CELL*server_t::trash_stack_size-2, getmaxx(stored_w)-COLS_PER_CELL-2);
+        trash_enemy_w = newwin(ROWS_PER_CELL * server_t::trash_stack_size + 2, COLS_PER_CELL+2, 
+            getmaxy(board_w)-ROWS_PER_CELL*server_t::trash_stack_size-2, getmaxx(stored_w)+getmaxx(board_w)+getmaxx(next_w));
         enemy_w = newwin(ROWS_PER_CELL * n_rows + 2, COLS_PER_CELL * n_cols + 2,
             0, getmaxx(stored_w)+getmaxx(board_w)+getmaxx(next_w)+getmaxx(trash_enemy_w));
         enemy_board = new block_type_t[n_rows*n_cols];
@@ -119,10 +120,10 @@ namespace tetris{
     void client_t::draw_trash_stack(WINDOW * w, int trash){
         werase(w);
         box(w, 0, 0);
-        trash = (trash>trash_stack_size ? trash_stack_size : trash);
-        for(int i=trash_stack_size-trash-1;i>=0;i--)
+        trash = (trash>server_t::trash_stack_size ? server_t::trash_stack_size : trash);
+        for(int i=server_t::trash_stack_size-trash-1;i>=0;i--)
             paint_block(w, 1+i*ROWS_PER_CELL, 1, block_type_t::EMPTY);
-        for(int i=trash_stack_size-trash;i<trash_stack_size; i++)
+        for(int i=server_t::trash_stack_size-trash;i<server_t::trash_stack_size; i++)
             paint_block(w, 1+i*ROWS_PER_CELL, 1, block_type_t::TRASH);
         touchwin(w);
         wnoutrefresh(w);
@@ -201,10 +202,14 @@ namespace tetris{
                     attacked = std::string(static_cast<const char *>(msg.getPayload()));
                     break;
                 case message_t::header_t::WIN:
+                    display_centered_message(board_w, "You're a winner!");
+                    shutdown(sockfd, 2);
+                    sockfd = 0;
                     break;
                 case message_t::header_t::LOSES:
                     shutdown(sockfd, 2);
                     sockfd = 0;
+                    display_centered_message(board_w, "You lose");
                     break;
                 default:
                     break;

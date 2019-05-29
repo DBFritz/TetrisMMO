@@ -20,7 +20,7 @@
 ///////////////////////
 namespace tetris{
     message_t::message_t(header_t header, content_type_t content, const void * payload, size_t payload_size){
-        packet = static_cast<packet_t *>(::operator new(sizeof(packet_t)+payload_size));
+        packet = static_cast<packet_t *>(malloc(sizeof(packet_t)+payload_size));
         packet->payload_size = payload_size;
         packet->header = header;
         packet->type_of_content = content;
@@ -45,7 +45,7 @@ namespace tetris{
     : message_t(header, message_t::content_type_t::NUMBER, &value, sizeof(int32_t)){}
 
     message_t::~message_t(){
-        delete packet;
+        free(packet);
     }
 
     message_t & message_t::update(const void * payload){
@@ -224,6 +224,7 @@ namespace tetris{
         while (!game[player].is_over()) {
             int lines = game[player].update();
             if (lines > 0){      // LINES CLEARED
+                message_t(message_t::header_t::POINTS, game[player].getScore()).send(clients_socket[player]);
                 std::lock_guard<std::mutex> lck (trash_mtx[attacked[player]]);
                 trash_stacks[attacked[player]]+=lines-1;
                 message_t(message_t::header_t::TRASH_STACK, trash_stacks[attacked[player]]).send(clients_socket[attacked[player]]);
@@ -260,11 +261,11 @@ namespace tetris{
     }
     void server_t::disconnect(int player){
         current_players--;
-        shutdown(clients_socket[player], 2);
-        clients_socket[player] = 0;
         message_t msg = message_t(message_t::header_t::CHANGE_ATTACKED);
         for(auto i: attackers[player])
             handle_message(i,&msg);
+        shutdown(clients_socket[player], 2);
+        clients_socket[player] = 0;
     }
 
     void server_t::handle_message(int player, message_t *msg){
@@ -331,7 +332,7 @@ std::ostream & operator << (std::ostream &out, tetris::message_t &msg){
     #define _CASE_MSG_TO_STR(x,y) case tetris::message_t::header_t::x: out << #y; break;
     #define CASE_MSG_TO_STR(x) _CASE_MSG_TO_STR(x,x)
     switch (msg.getHeader()) {
-        _CASE_MSG_TO_STR(CLIENTHI,HI);
+        _CASE_MSG_TO_STR(CLIENTHI,HI);      CASE_MSG_TO_STR(DROP);
         CASE_MSG_TO_STR(MOVE);              CASE_MSG_TO_STR(ROTATE);
         CASE_MSG_TO_STR(HOLD);              CASE_MSG_TO_STR(ACCELERATE);
         CASE_MSG_TO_STR(CHANGE_ATTACKED);   CASE_MSG_TO_STR(DISCONNECT);
