@@ -74,8 +74,13 @@ namespace tetris {
             location_t cell = block.tetromino()[i];
             int row = block.loc.y + cell.y;
             int col = block.loc.x + cell.x;
-            if (!bounded(row, col, exception) || !empty(row, col))
-                return false;
+            try{
+                if (!bounded(row, col, exception) || !empty(row, col))
+                    return false;
+            } catch (exception_t exception){
+                if (exception != Y_UNDERFLOW)
+                    throw;
+            }
         }
         return true;
     }
@@ -143,15 +148,7 @@ namespace tetris {
     }
 
     void game_t::drop(){
-        try {
-            fits(falling,true);
-        } catch (exception_t err) {
-            if (err==Y_UNDERFLOW)
-                while (!fits(falling))
-                    falling.loc.y++;
-        }
-        while (fits(falling))
-            falling.loc.y++;
+        do falling.loc.y++; while (fits(falling));
         falling.loc.y--;
         ticks_till_gravity = -1;
     }

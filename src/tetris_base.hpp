@@ -140,7 +140,7 @@ namespace tetris {
         bool bounded(int row, int col){ return 0<=row && row<n_rows && 0<=col && col <n_cols; }
         bool bounded(int row, int col, bool exception);
 
-        bool empty(int row, int col){ return operator()(row,col) == EMPTY; }
+        bool empty(int row, int col){ return get(row,col) == EMPTY; }
         bool filled(int row, int col){ return !empty(row, col); }
 
         int rows() { return n_rows; };

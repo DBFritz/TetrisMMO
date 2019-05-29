@@ -42,12 +42,14 @@ int main(int argc, char **argv)
         choice = getch();
         erase();
         switch (choice) {
-            case '1':{
-                tetris::singleplayer_t sp(name);
-                sp.play();
-                choice = 'q';
-                break;
-            }
+            case '1': try{
+                    tetris::singleplayer_t sp(name);
+                    sp.play();
+                    choice = 'q';
+                    break;
+                } catch (char const * exception) {
+                    std::cerr << exception << std::endl;
+                }
             case '2':{
                 ////join_game();
                 mvprintw(12,3, "Insert IP of the host:"); // (also port if required) (?)
