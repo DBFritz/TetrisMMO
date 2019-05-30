@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <utility>
 #include <mutex>
+#include <cerrno>
 #include "tetris_base.hpp"
 #include "tetris_server.hpp"
 
@@ -20,7 +21,7 @@
 ///////////////////////
 namespace tetris{
     message_t::message_t(header_t header, content_type_t content, const void * payload, size_t payload_size){
-        packet = static_cast<packet_t *>(malloc(sizeof(packet_t)+payload_size));
+        packet = (packet_t *)(malloc(sizeof(packet_t)+payload_size));
         packet->payload_size = payload_size;
         packet->header = header;
         packet->type_of_content = content;
@@ -58,16 +59,23 @@ namespace tetris{
     }
 
     void message_t::send(int socket){
-        if (::send(socket, packet, size(), 0) != size())
+        if (::send(socket, packet, size(), 0) != size()){
+            std::cerr << "BAD SENDING PACKET " << std::strerror(errno) << std::endl;
             throw "BAD SENDING PACKET"; //FIXME
-        return ;
+        }
     }
 
     message_t message_t::recv(int socket){
         message_t::packet_t * packet = new message_t::packet_t;
-        if (::recv(socket, packet, sizeof(packet_t), 0) != sizeof(packet_t)){
+        ssize_t read = ::recv(socket, packet, sizeof(packet_t), 0);
+        if (read != sizeof(packet_t)){
             delete packet;
             throw "BAD RECIEVING PACKET";
+        }
+        if (read == 0) {
+            packet->header = message_t::header_t::DISCONNECT;
+            packet->type_of_content = message_t::content_type_t::NONE;
+            packet->payload_size = 0;
         }
         uint8_t * payload = new uint8_t[packet->payload_size];
         if (packet->payload_size)
@@ -81,10 +89,11 @@ namespace tetris{
         delete payload;
         return newMessage;
     }
+
 }
 
 namespace tetris{
-    server_t::server_t(int N, bool _verbose): verbose(_verbose), max_players(N){
+    server_t::server_t(int N, bool _verbose): verbose(_verbose), max_players(N), current_players(N){
         game            = new game_t[N];
         clients_socket  = new int[N];
         trash_stacks    = new int[N];
@@ -248,9 +257,11 @@ namespace tetris{
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(16));
         }
+        int posible_winner = attackers[player][0];
         disconnect(player, message_t(message_t::header_t::LOSES));
         if (current_players==1) {
-            disconnect(attackers[player][0], message_t(message_t::header_t::WIN));
+            std::cerr << "Winner: " << posible_winner << std::endl;
+            disconnect(posible_winner, message_t(message_t::header_t::WIN));
             std::this_thread::sleep_for(std::chrono::milliseconds(32));
         }
     }
@@ -259,12 +270,19 @@ namespace tetris{
         msg.send(clients_socket[player]);
         disconnect(player);
     }
+
     void server_t::disconnect(int player){
         current_players--;
+        attackers[attacked[player]].erase(std::remove(attackers[attacked[player]].begin(), attackers[attacked[player]].end(), player), attackers[attacked[player]].end());
         message_t msg = message_t(message_t::header_t::CHANGE_ATTACKED);
-        for(auto i: attackers[player])
+
+        int point_to_repart = game[player].getScore()*attackers[player].size()/(attackers[player].size()+1);
+        for(auto i: attackers[player]){
+            message_t(message_t::header_t::POINTS, game[i].addScore(point_to_repart)).send(clients_socket[i]);
             handle_message(i,&msg);
-        shutdown(clients_socket[player], 2);
+        }
+
+        shutdown(clients_socket[player], 0);
         clients_socket[player] = 0;
     }
 
@@ -307,6 +325,14 @@ namespace tetris{
                 message_t(message_t::header_t::ATTACKED, game[attacked[player]]).send(clients_socket[player]);
                 message_t(message_t::header_t::TRASH_ENEMY_STACK, game[attacked[player]]).send(clients_socket[player]);
                 attackers[attacked[player]].push_back(player);
+                break;
+            case message_t::header_t::DISCONNECT:
+                disconnect(player);
+                break;
+            case message_t::header_t::SMS:
+                for(int i=0; i<max_players; i++)
+                    if (clients_socket[i]!=0)
+                        msg->send(clients_socket[i]);
                 break;
             default:
                 break;

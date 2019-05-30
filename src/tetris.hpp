@@ -27,6 +27,7 @@ namespace tetris{
         block_type_t *enemy_board;
         WINDOW * trash_w;
 
+        WINDOW * chat_w;
         WINDOW * trash_enemy_w;
         WINDOW * enemy_w;
 
@@ -39,6 +40,8 @@ namespace tetris{
         ~client_t();
 
         void play();
+        void write_sms();
+        void draw_sms(std::string);
 
         bool connect(std::string server = "127.0.0.1");
         void draw_enemy_board(std::string name = "");

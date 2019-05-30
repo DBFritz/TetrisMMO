@@ -44,6 +44,10 @@ namespace tetris{
 
     tetris_t::~tetris_t(){
         erase();
+        echo();
+        timeout(-1);
+        nocbreak();
+        curs_set(1);
         endwin();
 
         //FIXME: Delete this,

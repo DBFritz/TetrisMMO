@@ -29,32 +29,25 @@ int main(int argc, char **argv)
     keypad(stdscr, TRUE);
 
     mvprintw(1, 1, "Welcome to TetrisMMO!");
-    
-    int choice;
-    do {
+    while (true){
         mvprintw(5, 1, "Please, choose an option");
         mvprintw(6, 3, "1. Play singleplayer mode");
         mvprintw(7, 3, "2. Join a game");
         mvprintw(8, 3, "3. Host a game");
         mvprintw(9, 3, "4. Change keys");
         mvprintw(10,3, "q. Quit");
-        choice = getch();
-        erase();
-        switch (choice) {
-            case '1': try{
-                    tetris::singleplayer_t sp(name);
-                    sp.play();
-                    choice = 'q';
-                    break;
-                } catch (char const * exception) {
-                    std::cerr << exception << std::endl;
-                }
-            case '2':{
-                ////join_game();
-                mvprintw(12,3, "Insert IP of the host:"); // (also port if required) (?)
+        switch (getch()) {
+            case '1': {
+                tetris::singleplayer_t sp(name);
+                sp.play();
+                return 0;
+            }
+            case '2': {
+                mvprintw(12,3, "Insert IP of the host:");
                 echo();
                 mvprintw(15,5, ">> ");
                 char server[64]; //FIXME: Change value
+                fflush(stdin);
                 getstr(server);
                 noecho();
                 doupdate();
@@ -65,41 +58,37 @@ int main(int argc, char **argv)
                 } catch (char const* err){
                     std::cerr << "Exception: " << err << std::endl;
                 }
-                break;
+                return 0;
             }
-            case '3': try
-                {
-                    mvprintw(12,3, "Insert number of players"); // (also port if required) (?)
-                    echo();
-                    mvprintw(15,5, ">> ");
-                    int players; //FIXME: Change value
-                    scanw("%d", &players);
-                    noecho();
+            case '3': {
+                mvprintw(12,3, "Insert number of players");
+                echo();
+                mvprintw(15,5, ">> ");
+                int players;
+                scanw("%d", &players);
+                noecho();
                     
-                    pid_t pid = fork();
-                    int ready[2];
-                    pipe(ready);
-                    if (pid > 0) {
-                        tetris::client_t cl(name);
-                        endwin();
-                        close(ready[1]);
-                        cl.connect("127.0.0.1");
-                        cl.play();
-                    } else if (pid == 0) { // */
-                        endwin();
-                        std::cout << players << std::endl;
-                        tetris::server_t srv(players, (argc>2 ? true : false));
-                        srv.start();
-                        close(ready[0]);
-                        srv.run();
-                    } else {
-                        std::cerr << "ERROR Forking" << std::endl;
-                    } // */
-                    exit(0);
-                } catch (char const * err) {
-                    std::cerr << "Exception: " << err << std::endl;
+                pid_t pid = fork();
+                int ready[2];
+                pipe(ready);
+                if (pid > 0) {
+                    tetris::client_t cl(name);
+                    endwin();
+                    close(ready[1]);
+                    cl.connect("127.0.0.1");
+                    cl.play();
+                } else if (pid == 0) {
+                    endwin();
+                    std::cout << players << std::endl;
+                    tetris::server_t srv(players, (argc>2 ? true : false));
+                    srv.start();
+                    close(ready[0]);
+                    srv.run();
+                } else {
+                    std::cerr << "ERROR Forking" << std::endl;
                 }
-                break;
+                return 0;
+            }
             case '4':{
                 //change_keys();
                 break;
@@ -107,11 +96,9 @@ int main(int argc, char **argv)
             case 'q':{
                 endwin();
                 exit(0);
-            }      
+            }
         }
-    } while (choice != 'q');
-    
-    endwin();
-
+        erase();
+    }
     return 0;
 }

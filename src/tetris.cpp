@@ -51,6 +51,8 @@ namespace tetris{
         enemy_w = newwin(ROWS_PER_CELL * n_rows + 2, COLS_PER_CELL * n_cols + 2,
             0, getmaxx(stored_w)+getmaxx(board_w)+getmaxx(next_w)+getmaxx(trash_enemy_w));
         enemy_board = new block_type_t[n_rows*n_cols];
+        //keys.set('y',       &tetris::client_t::write_sms);            //NOT AVAILABLE NOW
+        //chat_w = newwin(2, 64, getmaxy(board_w), getmaxx(trash_w));
     }
     client_t::~client_t(){
         shutdown(sockfd, 2);
@@ -100,11 +102,39 @@ namespace tetris{
     
     void client_t::play(){
         timeout(-1); //wait for input
-        while(1){
+        while(true){
             keys(*this, getch());
         }
     }
     
+    void client_t::write_sms(){
+        static char buffer[128];
+        mvwprintw(chat_w,1,0,name.c_str());
+        strcpy(buffer,name.c_str());
+        strcat(buffer,": ");
+        wprintw(chat_w,": ");
+        echo();
+        wnoutrefresh(chat_w);
+        doupdate();
+        wgetnstr(chat_w, buffer+strlen(buffer), 127-strlen(buffer));
+        noecho();
+        wmove(chat_w,1,0);
+        wrefresh(chat_w);
+        wclrtoeol(chat_w);
+        wnoutrefresh(chat_w);
+        message_t(message_t::header_t::SMS, std::string(buffer)).send(sockfd);
+        fflush(stdin);
+        doupdate();
+    }
+
+    void client_t::draw_sms(std::string sms){
+        wmove(chat_w,0,0);
+        wrefresh(chat_w);
+        wclrtoeol(chat_w);
+        mvwprintw(chat_w,0,0,sms.c_str());
+        wnoutrefresh(chat_w);
+    }
+
     void client_t::draw_enemy_board(std::string name){
         werase(enemy_w);
         box(enemy_w, 0, 0);
@@ -201,10 +231,14 @@ namespace tetris{
                 case message_t::header_t::ATT_NAME:
                     attacked = std::string(static_cast<const char *>(msg.getPayload()));
                     break;
+                case message_t::header_t::SMS:
+                    draw_sms(std::string(static_cast<const char *>(msg.getPayload())));
+                    doupdate();
+                    break;
                 case message_t::header_t::WIN:
-                    display_centered_message(board_w, "You're a winner!");
                     shutdown(sockfd, 2);
                     sockfd = 0;
+                    display_centered_message(board_w, "You're a winner!");
                     break;
                 case message_t::header_t::LOSES:
                     shutdown(sockfd, 2);

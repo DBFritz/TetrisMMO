@@ -131,6 +131,7 @@ namespace tetris {
 
         block_type_t operator()(int row, int col);
         int getScore(){ return score; }
+        int addScore(int to_add) { score += to_add; return score; }
         int getLinesRemaining(){ return lines_remaining; }
         int getLevel(){ return level; }
         const block_t &getNext(){ return next; }
