@@ -50,9 +50,11 @@ namespace tetris{
         message_t &update(const void * payload);
         message_t &update(const void * payload, uint16_t size);
 
+        message_t &change_endian();
+
         bool is_server();
-        void send(int socket);
-        static message_t recv(int socket);
+        void send(int socket, bool change_endian = false);
+        static message_t recv(int socket, bool change_endian = false);
 
         const header_t getHeader() { return packet->header; }
         const content_type_t getContentType() { return packet->type_of_content; }

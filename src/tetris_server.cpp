@@ -58,14 +58,39 @@ namespace tetris{
         return *this;
     }
 
-    void message_t::send(int socket){
+
+
+    message_t & message_t::change_endian(){
+        //packet->header            //1-byte: unchanged
+        //packet->type_of_content   //1-byte: unchanged
+        packet->payload_size = packet->payload_size << 8 | packet->payload_size >> 8;
+        switch(packet->type_of_content){
+            case content_type_t::NUMBER:    //4-bytes
+                std::swap(packet->payload[0],packet->payload[3]);
+                std::swap(packet->payload[1],packet->payload[2]);
+            case content_type_t::BLOCK:
+                //packet->payload[0] // block_type_t typ;
+                //packet->payload[1] // uint8_t ori;
+                std::swap(packet->payload[2],packet->payload[3]);   //short
+                std::swap(packet->payload[4],packet->payload[5]);   //short
+            case content_type_t::BOARD:
+            case content_type_t::STRING:
+            case content_type_t::NONE:
+                break;
+        }
+        return *this;
+    }
+
+    void message_t::send(int socket, bool change_endian){
+        if (change_endian) this->change_endian();
         if (::send(socket, packet, size(), 0) != size()){
             std::cerr << "BAD SENDING PACKET " << std::strerror(errno) << std::endl;
             throw "BAD SENDING PACKET"; //FIXME
         }
     }
 
-    message_t message_t::recv(int socket){
+    message_t message_t::recv(int socket, bool change_endian){
+        
         message_t::packet_t * packet = new message_t::packet_t;
         ssize_t read = ::recv(socket, packet, sizeof(packet_t), 0);
         if (read != sizeof(packet_t)){
@@ -85,6 +110,7 @@ namespace tetris{
                 throw "BAD RECIEVING PAYLOAD";
             }
         message_t newMessage(packet->header, packet->type_of_content, payload, packet->payload_size);
+        if (change_endian) newMessage.change_endian();
         delete packet;
         delete payload;
         return newMessage;

@@ -70,34 +70,16 @@ namespace tetris{
         serv_addr.sin_port = htons(PORT);
         if (::connect(sockfd, (struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
             throw "CONNECTION ERROR";
+        
+        // recieve hi to determing same or different endian
+        dif_endian = (*static_cast<const int *>(message_t::recv(sockfd).getPayload()) != 1);
+
+        //say my name
+        message_t(message_t::header_t::CLIENTHI, name).send(sockfd, dif_endian);
         //std::cerr << "Executing thread" << std::endl;
         socket_handler = std::thread(&client_t::handle_socket, this);
         socket_handler.detach();
         return true;
-    }
-
-    void client_t::send(std::string command, int value){
-        try {
-            stream.clear();
-            stream.str("");
-            stream << command << ' ' << value << std::endl;
-            ::send(sockfd, stream.str().c_str(), stream.str().length(), 0);
-        } catch(char const * err){
-            std::cerr << err << std::endl;
-            throw;
-        }
-    }
-
-    void client_t::send(std::string command){
-        try {
-            stream.clear();
-            stream.str("");
-            stream << command << std::endl;
-            ::send(sockfd, stream.str().c_str(), stream.str().length(), 0);
-        } catch (char const * err){
-            std::cerr << err << std::endl;
-            throw;
-        }
     }
     
     void client_t::play(){
@@ -122,7 +104,7 @@ namespace tetris{
         wrefresh(chat_w);
         wclrtoeol(chat_w);
         wnoutrefresh(chat_w);
-        message_t(message_t::header_t::SMS, std::string(buffer)).send(sockfd);
+        message_t(message_t::header_t::SMS, std::string(buffer)).send(sockfd, dif_endian);
         fflush(stdin);
         doupdate();
     }
@@ -159,17 +141,16 @@ namespace tetris{
         wnoutrefresh(w);
     }
 
-    void client_t::move(int direction)  {message_t(message_t::header_t::MOVE, direction)  .send(sockfd); }
-    void client_t::rotate(int direction){message_t(message_t::header_t::ROTATE, direction).send(sockfd); }
-    void client_t::hold() { message_t(message_t::header_t::HOLD).send(sockfd);  }
-    void client_t::drop() { message_t(message_t::header_t::DROP).send(sockfd);  }
-    void client_t::accelerate(int r) {message_t(message_t::header_t::ACCELERATE, r)  .send(sockfd);  }
-    void client_t::change_attacked() {message_t(message_t::header_t::CHANGE_ATTACKED).send(sockfd); }
+    void client_t::move(int direction)  {message_t(message_t::header_t::MOVE, direction)  .send(sockfd, dif_endian); }
+    void client_t::rotate(int direction){message_t(message_t::header_t::ROTATE, direction).send(sockfd, dif_endian); }
+    void client_t::hold() { message_t(message_t::header_t::HOLD).send(sockfd, dif_endian);  }
+    void client_t::drop() { message_t(message_t::header_t::DROP).send(sockfd, dif_endian);  }
+    void client_t::accelerate(int r) {message_t(message_t::header_t::ACCELERATE, r)  .send(sockfd, dif_endian);  }
+    void client_t::change_attacked() {message_t(message_t::header_t::CHANGE_ATTACKED).send(sockfd, dif_endian); }
 
     void client_t::handle_socket(){
-        message_t(message_t::header_t::CLIENTHI, name).send(sockfd);
         while (sockfd){
-            message_t msg = message_t::recv(sockfd);
+            message_t msg = message_t::recv(sockfd, dif_endian);
             //std::cerr << "New message!" << std::endl;
             switch (msg.getHeader()){
                 case message_t::header_t::PLAY:

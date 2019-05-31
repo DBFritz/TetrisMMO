@@ -18,6 +18,7 @@ namespace tetris{
       protected:
         tetris::keys_t<client_t> keys;
         int sockfd;
+        bool dif_endian;
         std::stringstream stream;
         std::stringstream streamrcv;
         std::string attacked;

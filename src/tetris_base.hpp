@@ -24,7 +24,7 @@ namespace tetris {
 
     #define y first
     #define x second
-    typedef std::pair<int,int> location_t;
+    typedef std::pair<short,short> location_t;
 
     // from: https://github.com/brenns10/tetris
     const location_t TETROMINOS[NUM_TETROMINOS][NUM_ORIENTATIONS][TETRIS] = {
@@ -68,7 +68,7 @@ namespace tetris {
     class block_t{
         public:
         block_type_t typ;
-        int ori;
+        uint8_t ori;
         location_t loc;
 
         int itype(){ return static_cast<int>(typ)-1; }
