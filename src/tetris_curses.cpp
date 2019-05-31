@@ -70,7 +70,7 @@ namespace tetris{
         mvwaddchstr(w, y, x, BLOCK_STR[(int)type]);
     }
 
-    void tetris_t::display_centered_message(WINDOW *w, std::string text){
+    void tetris_t::display_centered_message(WINDOW *w, std::string text, bool need_char){
         wclear(w);
         box(w, 0, 0);
         int lines = 1, len=0, max_len = 0;
@@ -87,7 +87,7 @@ namespace tetris{
         wprintw(w, text.c_str());
         wrefresh(w);
         timeout(-1);
-        getch();
+        if (need_char) getch();
         timeout(0);
     }
 

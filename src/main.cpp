@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     }
 
     initscr();
-    curs_set(0);
+    //curs_set(0);
     noecho();
     keypad(stdscr, TRUE);
 
@@ -34,7 +34,7 @@ int main(int argc, char **argv)
         mvprintw(6, 3, "1. Play singleplayer mode");
         mvprintw(7, 3, "2. Join a game");
         mvprintw(8, 3, "3. Host a game");
-        mvprintw(9, 3, "4. Change keys");
+        //mvprintw(9, 3, "4. Change keys");
         mvprintw(10,3, "q. Quit");
         switch (getch()) {
             case '1': {
@@ -46,7 +46,7 @@ int main(int argc, char **argv)
                 mvprintw(12,3, "Insert IP of the host:");
                 echo();
                 mvprintw(15,5, ">> ");
-                char server[64]; //FIXME: Change value
+                char server[64]; //FIXME: Do I need more?
                 fflush(stdin);
                 getstr(server);
                 noecho();

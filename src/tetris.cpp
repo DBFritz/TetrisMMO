@@ -84,7 +84,7 @@ namespace tetris{
     
     void client_t::play(){
         timeout(-1); //wait for input
-        while(true){
+        while(sockfd != 0){
             keys(*this, getch());
         }
     }
@@ -157,7 +157,7 @@ namespace tetris{
                     clear();
                     doupdate();
                     refresh();
-                    draw_board();
+                    draw_board(false);
                     draw_enemy_board(attacked);
                     draw_hold();
                     draw_next();

@@ -5,6 +5,15 @@ LFLAGS=$(FLAGS) -lncurses -ltinfo -pthread
 MK_DIR=@mkdir -p
 SOURCES=$(shell find src/ -type f -name "*.cpp")
 
+DEBUG ?= 0
+ifeq ($(DEBUG), 1)
+    CFLAGS+= -g -DDEBUG
+	LFLAGS+= -g -DDEBUG
+else
+    CFLAGS+= -O3
+	LFLAGS+= -O3
+endif
+
 # Targets
 .PHONY: all debug clean clean_all 
 

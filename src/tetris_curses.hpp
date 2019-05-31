@@ -17,12 +17,6 @@ namespace tetris{
     const int COLS_PER_CELL{2};
     const int ROWS_PER_CELL{1};
 
-    class window_t{
-        WINDOW * self;
-        bool with_box;
-        void draw_block(block_type_t type, bool origin = true);
-    };
-
     template <class T>
     class keys_t {
     private:
@@ -50,17 +44,15 @@ namespace tetris{
         void operator()(T &game, int key);
     };
 
-    class layout_t{
-
-    };
     void paint_block(WINDOW *w, int y, int x, block_type_t type);
+
     class tetris_t : public game_t{
     protected:
         std::string name;
         WINDOW *board_w, *stored_w, *next_w, *score_w;
         void draw_block(WINDOW *w, block_t block, std::string text = "");
         
-        void display_centered_message(WINDOW *w, std::string text);
+        void display_centered_message(WINDOW *w, std::string text, bool need_char = false);
     public:
 
         void draw_board(bool drawfalling = true);
@@ -69,7 +61,6 @@ namespace tetris{
         void draw_next(std::string text = "Next") { draw_block(next_w,getNext(), text); }
         void draw_score();
         
-
         tetris_t(std::string name = "Unnamed", int rows = 20, int cols = 10);
         ~tetris_t();
     };

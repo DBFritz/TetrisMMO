@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <sstream>
 #include <arpa/inet.h>
+#include <unistd.h>
 #include <thread>
 #include <chrono>
 #include <unordered_map>
@@ -143,8 +144,9 @@ namespace tetris{
     }
 
     server_t::~server_t(){
+        if (close(master_socket) == 0)
+            std::cerr << "Couldn't close socket" << std::endl;
         running = false;
-        shutdown(master_socket, 2);
         delete[] game;
         delete[] trash_stacks;
         delete[] trash_mtx;
@@ -310,6 +312,8 @@ namespace tetris{
 
         shutdown(clients_socket[player], 0);
         clients_socket[player] = 0;
+        if (current_players==0)
+            running =false;
     }
 
     void server_t::handle_message(int player, message_t *msg){
