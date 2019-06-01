@@ -84,8 +84,10 @@ namespace tetris{
     
     void client_t::play(){
         timeout(-1); //wait for input
+        int ch = getch();
         while(sockfd != 0){
-            keys(*this, getch());
+            keys(*this, ch);
+            ch = getch();
         }
     }
     

@@ -17,6 +17,34 @@
 #include "tetris_base.hpp"
 #include "tetris_server.hpp"
 
+//* Map for small size of Key_t using std::vector
+template <typename Key_t, typename Value_t>
+class plain_map_t{
+public:
+    std::vector<bool> is_defined;
+    std::vector<Value_t> elements;
+    plain_map_t(){
+        is_defined.resize(sizeof(Value_t), false);
+        elements.reserve(sizeof(Value_t));
+    }
+    Value_t &operator[](Key_t index){
+        is_defined[static_cast<int>(index)] = true;
+        return elements[static_cast<int>(index)];
+    }
+    
+    void remove(Key_t index){ is_defined[static_cast<int>(index)] = false; }
+    
+    typename std::vector<Value_t>::iterator begin(){ return elements.begin(); }
+
+    typename std::vector<Value_t>::iterator end(){ return elements.end(); }
+
+    typename std::vector<Value_t>::iterator find(Key_t index){
+        if (is_defined[static_cast<int>(index)])
+            return begin() + static_cast<int>(index);
+        return end();
+    }
+};
+
 namespace tetris{
 
     class message_t {
@@ -76,6 +104,8 @@ namespace tetris{
         std::mutex *trash_mtx;
         int *trash_stacks;
 
+        std::mutex disconnecting;
+
         int *attacked;
         std::vector<int> *attackers;
         std::string *names;
@@ -92,8 +122,17 @@ namespace tetris{
                 void (game_t::*wo_argument)();
             } fun;
         };
-        std::unordered_map<message_t::header_t, command_t> commands;
-        std::unordered_map<message_t::header_t, std::pair<const void *, message_t> > responses;
+        
+        plain_map_t<message_t::header_t, command_t> commands;
+        plain_map_t<message_t::header_t, void(server_t::*)(int)> responses;
+
+        void set_response(message_t::header_t command, void (server_t::*fun)(int)){ responses[command] = fun; }
+
+        void send_stored(int player) { message_t(message_t::header_t::STORED, game[player].getStored()).send(clients_socket[player]); }
+        void send_falling(int player){ message_t(message_t::header_t::FALLING, game[player].getFalling()).send(clients_socket[player]); }
+        void send_stored_and_falling(int player) { send_stored(player); send_falling(player); }
+
+        void change_attacked(int player);
 
       public:
         static const int trash_stack_size{14};
@@ -105,11 +144,10 @@ namespace tetris{
 
         void set_command(message_t::header_t command, void (game_t::*fun)(int));
         void set_command(message_t::header_t command, void (game_t::*fun)());
-        void set_response(message_t::header_t command,
-            message_t::header_t response, message_t::content_type_t content, const void * payload, uint16_t payload_size);
 
         //void remove_command(void (game_t::*fun)(int, int), int arg);
         //void remove_command(void (game_t::*fun)(int));
+
 
         void start(int port=8558);
         void run();

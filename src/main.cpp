@@ -9,6 +9,7 @@
 #include <thread>
 #include <locale.h>
 #include <algorithm>
+#include <sys/wait.h>
 #include "tetris.hpp"
 #include "tetris_server.hpp"
 #include <unistd.h>
@@ -77,6 +78,7 @@ int main(int argc, char **argv)
                     close(ready[1]);
                     cl.connect("127.0.0.1");
                     cl.play();
+                    wait(NULL);
                 } else if (pid == 0) {
                     endwin();
                     std::cout << players << std::endl;
@@ -89,10 +91,15 @@ int main(int argc, char **argv)
                 }
                 return 0;
             }
-            case '4':{
-                //change_keys();
-                break;
-            }
+            case 'h': { //Just host
+                endwin();
+                int players;
+                std::cin >> players;
+                tetris::server_t srv(players, true);
+                srv.start();
+                srv.run();
+                return 0;
+            } // */
             case 'q':{
                 endwin();
                 exit(0);

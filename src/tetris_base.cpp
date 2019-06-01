@@ -233,13 +233,13 @@ namespace tetris {
     }
 
     void game_t::add_trash(int lines){
-        static std::uniform_int_distribution<int> uni(0,n_cols-1);
-        for (int i=lines;i<n_rows; i++)
-            for(int j=0;j < n_cols; j++)
+        static std::uniform_int_distribution<int> uni(0,cols()-1);
+        for (int i=lines;i<rows(); i++)
+            for(int j=0;j <cols(); j++)
                 set(i-lines, j, get(i, j));
-        for (int i=n_rows-lines; i<n_rows; i++){
+        for (int i=rows()-lines; i<rows(); i++){
             int col = uni(rng);
-            for(int j=0;j < n_cols; j++)
+            for(int j=0;j < cols(); j++)
                 set(i, j, (j!=col ?TRASH:EMPTY));
         }
     }
