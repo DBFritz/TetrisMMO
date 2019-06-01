@@ -55,7 +55,11 @@ namespace tetris{
         //chat_w = newwin(2, 64, getmaxy(board_w), getmaxx(trash_w));
     }
     client_t::~client_t(){
-        shutdown(sockfd, 2);
+        if (sockfd)
+            shutdown(sockfd, 2);
+        sockfd=0;
+        if (socket_handler.joinable())
+            socket_handler.join();
         delete[] enemy_board;
     }
 
@@ -78,7 +82,6 @@ namespace tetris{
         message_t(message_t::header_t::CLIENTHI, name).send(sockfd, dif_endian);
         //std::cerr << "Executing thread" << std::endl;
         socket_handler = std::thread(&client_t::handle_socket, this);
-        socket_handler.detach();
         return true;
     }
     
