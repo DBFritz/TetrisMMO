@@ -29,7 +29,7 @@ namespace tetris{
             int argument;
         };
         key_t keys[KEY_MAX];
-        bool is_defined[KEY_MAX];
+        std::vector<bool> is_defined;
 
     public:
         keys_t();
@@ -67,7 +67,8 @@ namespace tetris{
 
     template <class T>
     keys_t<T>::keys_t(){
-        std::memset(static_cast<void *>(is_defined), false, KEY_MAX*sizeof(bool));
+        is_defined.resize(KEY_MAX, false);
+        //std::memset(static_cast<void *>(is_defined), false, KEY_MAX*sizeof(bool));
     }
 
     template <class T>
