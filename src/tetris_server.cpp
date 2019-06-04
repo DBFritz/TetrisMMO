@@ -197,13 +197,12 @@ namespace tetris{
         address.sin_addr.s_addr = INADDR_ANY;   
         address.sin_port = htons( port );
 
-        if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)   
-            throw "ERROR binding";
+        if ( bind(master_socket, (struct sockaddr *)(&address), sizeof(address)) < 0)
+            throw "ERROR binding";         // Why vscode gets bugged with this cast?...
 
         if (verbose)
             std::cerr << "Listening on port" << port << std::endl;   
 
-        // FIXME: why 3?
         if (listen(master_socket, 3) < 0)   
             throw "ERROR listening"; 
 
