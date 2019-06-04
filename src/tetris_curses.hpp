@@ -88,11 +88,13 @@ namespace tetris{
 
     template <class T>
     void keys_t<T>::operator()(T &game, int key){
-        if (is_defined[key]) {
-            if (keys[key].is_with_argument){
-                (game.*(keys[key].fun.with_argument))(keys[key].argument);
-            } else {
-                (game.*(keys[key].fun.wo_argument))();
+        if (0<=key && static_cast<unsigned>(key) < is_defined.size()){
+            if (is_defined[key]) {
+                if (keys[key].is_with_argument){
+                    (game.*(keys[key].fun.with_argument))(keys[key].argument);
+                } else {
+                    (game.*(keys[key].fun.wo_argument))();
+                }
             }
         }
     }

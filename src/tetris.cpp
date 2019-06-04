@@ -1,7 +1,6 @@
 #include <string>
 #include <sys/socket.h>
 #include <ncurses.h>
-//#include <netinet/in.h>
 #include <netdb.h>
 #include <sstream>
 #include <thread>
@@ -18,7 +17,7 @@ namespace tetris{
         keys.set(' ',       &tetris::singleplayer_t::hold);
         keys.set(KEY_DOWN,  &tetris::singleplayer_t::drop);
         //keys.set('x',       &tetris::singleplayer_t::add_trash, 1);
-        keys.set('c',       &tetris::singleplayer_t::accelerate, 2);
+        keys.set('a',       &tetris::singleplayer_t::accelerate, 2);
     }
 
     void singleplayer_t::play(){
@@ -30,8 +29,9 @@ namespace tetris{
             draw_score();
             doupdate();
             std::this_thread::sleep_for(std::chrono::milliseconds(16));
-            keys(*this, getch());
+            keys(*this, getch());   //Ejecute the funcion asociated with that key
         }
+        display_centered_message(board_w, "Game over", true);
     }
 
     client_t::client_t(std::string name): tetris_t(name){
@@ -43,7 +43,9 @@ namespace tetris{
         keys.set(KEY_DOWN,  &tetris::client_t::drop);
         keys.set('c',       &tetris::client_t::change_attacked);
         keys.set('a',       &tetris::client_t::accelerate, 1);
+
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
         trash_w = newwin(ROWS_PER_CELL * server_t::trash_stack_size + 2, COLS_PER_CELL+2,
             getmaxy(board_w)-ROWS_PER_CELL*server_t::trash_stack_size-2, getmaxx(stored_w)-COLS_PER_CELL-2);
         trash_enemy_w = newwin(ROWS_PER_CELL * server_t::trash_stack_size + 2, COLS_PER_CELL+2, 
@@ -51,13 +53,15 @@ namespace tetris{
         enemy_w = newwin(ROWS_PER_CELL * n_rows + 2, COLS_PER_CELL * n_cols + 2,
             0, getmaxx(stored_w)+getmaxx(board_w)+getmaxx(next_w)+getmaxx(trash_enemy_w));
         enemy_board = new block_type_t[n_rows*n_cols];
-        //keys.set('y',       &tetris::client_t::write_sms);            //NOT AVAILABLE NOW
-        //chat_w = newwin(2, 64, getmaxy(board_w), getmaxx(trash_w));
+
     }
+
     client_t::~client_t(){
+
         if (sockfd)
             shutdown(sockfd, 2);
         sockfd=0;
+
         if (socket_handler.joinable())
             socket_handler.join();
         delete[] enemy_board;
@@ -80,7 +84,7 @@ namespace tetris{
 
         //say my name
         message_t(message_t::header_t::CLIENTHI, name).send(sockfd, dif_endian);
-        //std::cerr << "Executing thread" << std::endl;
+
         socket_handler = std::thread(&client_t::handle_socket, this);
         return true;
     }
@@ -92,34 +96,6 @@ namespace tetris{
             keys(*this, ch);
             ch = getch();
         }
-    }
-    
-    void client_t::write_sms(){
-        static char buffer[128];
-        mvwprintw(chat_w,1,0,name.c_str());
-        strcpy(buffer,name.c_str());
-        strcat(buffer,": ");
-        wprintw(chat_w,": ");
-        echo();
-        wnoutrefresh(chat_w);
-        doupdate();
-        wgetnstr(chat_w, buffer+strlen(buffer), 127-strlen(buffer));
-        noecho();
-        wmove(chat_w,1,0);
-        wrefresh(chat_w);
-        wclrtoeol(chat_w);
-        wnoutrefresh(chat_w);
-        message_t(message_t::header_t::SMS, std::string(buffer)).send(sockfd, dif_endian);
-        fflush(stdin);
-        doupdate();
-    }
-
-    void client_t::draw_sms(std::string sms){
-        wmove(chat_w,0,0);
-        wrefresh(chat_w);
-        wclrtoeol(chat_w);
-        mvwprintw(chat_w,0,0,sms.c_str());
-        wnoutrefresh(chat_w);
     }
 
     void client_t::draw_enemy_board(std::string name){
@@ -159,6 +135,7 @@ namespace tetris{
             //std::cerr << "New message!" << std::endl;
             switch (msg.getHeader()){
                 case message_t::header_t::PLAY:
+                    //Draw everything
                     clear();
                     doupdate();
                     refresh();
@@ -172,65 +149,73 @@ namespace tetris{
                     refresh();
                     doupdate();
                     break;
+
                 case message_t::header_t::BOARD:
                     std::memcpy(board, msg.getPayload(),msg.getPayloadSize());
                     draw_board();
                     doupdate();
                     break;
+
                 case message_t::header_t::FALLING:
                     std::memcpy(static_cast<void *>(&falling), msg.getPayload(), msg.getPayloadSize());
                     draw_board();
                     doupdate();
                     break;
+
                 case message_t::header_t::ATTACKED:
                     std::memcpy(enemy_board, msg.getPayload(), msg.getPayloadSize());
                     draw_enemy_board(attacked);
                     doupdate();
                     break;
+
                 case message_t::header_t::NEXT:
                     std::memcpy(static_cast<void *>(&next), msg.getPayload(), msg.getPayloadSize());
                     draw_next();
                     doupdate();
                     break;
+
                 case message_t::header_t::STORED:
                     std::memcpy(static_cast<void *>(&stored), msg.getPayload(), msg.getPayloadSize());
                     draw_hold();
                     doupdate();
                     break;
+
                 case message_t::header_t::POINTS:
                     std::memcpy(static_cast<void *>(&score), msg.getPayload(), msg.getPayloadSize());
                     draw_score();
                     doupdate();
                     break;
+
                 case message_t::header_t::TRASH_STACK:
                     int trash;
                     std::memcpy(static_cast<void *>(&trash), msg.getPayload(), msg.getPayloadSize());
                     draw_trash_stack(trash_w,trash);
                     doupdate();
                     break;
+
                 case message_t::header_t::TRASH_ENEMY_STACK:
                     int enemy_trash;
                     std::memcpy(static_cast<void *>(&enemy_trash), msg.getPayload(), msg.getPayloadSize());
                     draw_trash_stack(trash_enemy_w,enemy_trash);
                     doupdate();
                     break;
+
                 case message_t::header_t::ATT_NAME:
                     attacked = std::string(static_cast<const char *>(msg.getPayload()));
                     break;
-                case message_t::header_t::SMS:
-                    draw_sms(std::string(static_cast<const char *>(msg.getPayload())));
-                    doupdate();
-                    break;
+                    
                 case message_t::header_t::WIN:
                     shutdown(sockfd, 2);
                     sockfd = 0;
                     display_centered_message(board_w, "You're a winner!");
                     break;
+
                 case message_t::header_t::LOSES:
                     shutdown(sockfd, 2);
                     sockfd = 0;
                     display_centered_message(board_w, "You lose");
                     break;
+
                 default:
                     break;
             }

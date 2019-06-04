@@ -49,10 +49,6 @@ namespace tetris{
         nocbreak();
         curs_set(1);
         endwin();
-
-        //FIXME: Delete this,
-        std::cout << "Game over!" << std::endl;
-        std::cout << "You have reach level " << getLevel() << ", your score was " << getScore() << std::endl;
     }
 
     void paint_block(WINDOW *w, int y, int x, block_type_t type){

@@ -81,7 +81,6 @@ int main(int argc, char **argv)
                     wait(NULL);
                 } else if (pid == 0) {
                     endwin();
-                    std::cout << players << std::endl;
                     tetris::server_t srv(players, (argc>2 ? true : false));
                     srv.start();
                     close(ready[0]);

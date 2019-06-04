@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 #include <thread>
 #include <chrono>
-#include <unordered_map>
 #include <utility>
 #include <mutex>
 #include "tetris_base.hpp"
@@ -51,7 +50,7 @@ namespace tetris{
     public:
         enum class header_t: uint8_t {
             // Client -> Server
-            CLIENTHI = 0x00, MOVE, ROTATE, HOLD, DROP, ACCELERATE, CHANGE_ATTACKED, DISCONNECT, SMS = 0x79,
+            CLIENTHI = 0x00, MOVE, ROTATE, HOLD, DROP, ACCELERATE, CHANGE_ATTACKED, DISCONNECT,
             // Server -> Client
             SERVERHI = 0x80, PLAY, BOARD, ATTACKED, ATT_NAME, FALLING, NEXT, STORED, POINTS, TRASH_STACK, TRASH_ENEMY_STACK, WIN, LOSES
         };
@@ -63,7 +62,7 @@ namespace tetris{
             content_type_t type_of_content;
             uint16_t payload_size;
             uint8_t payload[0];
-        };
+        } __attribute__((packed));
 
         message_t(packet_t packet);
         message_t(header_t header, content_type_t content, const void * payload = nullptr, size_t payload_size = 0);
@@ -82,7 +81,9 @@ namespace tetris{
 
         bool is_server();
         void send(int socket, bool change_endian = false);
+        void send(int socket, std::mutex &mutex, bool change_endian = false);
         static message_t recv(int socket, bool change_endian = false);
+        static message_t recv(int socket, std::mutex &mutex, bool change_endian = false);
 
         const header_t getHeader() { return packet->header; }
         const content_type_t getContentType() { return packet->type_of_content; }
@@ -105,6 +106,7 @@ namespace tetris{
         int *trash_stacks;
 
         std::mutex disconnecting;
+        std::mutex * sock_mtx;
 
         int *attacked;
         std::vector<int> *attackers;
@@ -147,7 +149,6 @@ namespace tetris{
 
         //void remove_command(void (game_t::*fun)(int, int), int arg);
         //void remove_command(void (game_t::*fun)(int));
-
 
         void start(int port=8558);
         void run();
